@@ -109,3 +109,14 @@ void OSAP::debug(String msg, OSAPDebugStreams stream){
   debugCount ++;
   debugPrint(msg);
 }
+
+// there's another one of these in ts.h, sorry again:
+union chnk_float32 {
+  uint8_t bytes[4];
+  float f;
+};
+
+float OSAP::readFloat(uint8_t* buf){
+  chnk_float32 chunk = { .bytes = { buf[0], buf[1], buf[2], buf[3] } };
+  return chunk.f;
+}

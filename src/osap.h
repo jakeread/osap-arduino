@@ -33,6 +33,8 @@ class OSAP : public Vertex {
     static void error(String msg, OSAPErrorLevels lvl = MINOR );
     static void debug(String msg, OSAPDebugStreams stream = DBG_DFLT );
     static uint32_t loopItemsHighWaterMark;
+    // I'm uuuh... going to stuff type stuff in here, as a hack, sorry:
+    float readFloat(uint8_t* buf);
 };
 
 #endif 
