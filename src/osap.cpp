@@ -97,17 +97,17 @@ void debugPrint(String msg){
 
 void OSAP::error(String msg, OSAPErrorLevels lvl){
   //const char* str = msg.c_str();
-  msg.getBytes(latestError, VT_SLOTSIZE);
-  latestErrorLen = msg.length();
+  // msg.getBytes(latestError, VT_SLOTSIZE);
+  // latestErrorLen = msg.length();
   errorCount ++;
-  debugPrint(msg);
+  // debugPrint(msg);
 }
 
 void OSAP::debug(String msg, OSAPDebugStreams stream){
-  msg.getBytes(latestDebug, VT_SLOTSIZE);
-  latestDebugLen = msg.length();
+  // msg.getBytes(latestDebug, VT_SLOTSIZE);
+  // latestDebugLen = msg.length();
   debugCount ++;
-  debugPrint(msg);
+  // debugPrint(msg);
 }
 
 // there's another one of these in ts.h, sorry again:
