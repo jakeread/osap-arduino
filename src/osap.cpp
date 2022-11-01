@@ -17,6 +17,8 @@ is; no warranty is provided, and users accept all liability.
 #include "core/packets.h"
 #include "utils/cobs.h"
 
+#include <FlashStorage_SAMD.h>
+
 // stash most recents, and counts, and high water mark, 
 uint32_t OSAP::loopItemsHighWaterMark = 0;
 uint32_t errorCount = 0;
@@ -27,7 +29,25 @@ unsigned char latestDebug[VT_SLOTSIZE];
 uint16_t latestErrorLen = 0;
 uint16_t latestDebugLen = 0;
 
-OSAP::OSAP(String _name) : Vertex("rt_" + _name){};
+const int WRITTEN_SIGNATURE = 0xBEEFDEED;
+char testName[5] = "test";
+char rootName[100];
+
+OSAP::OSAP(String _name) : Vertex("rt_" + _name){
+  // shouldn't it wake up here ? 
+};
+
+void OSAP::init(void){
+  // could do wake-up here, 
+  int16_t storedAddress = 0;
+  int signature;
+  EEPROM.get(storedAddress, signature);
+  if(signature == WRITTEN_SIGNATURE){
+    EEPROM.get(storedAddress + sizeof(signature), rootName);
+    String newName = String(rootName); // via cstr -> arduino String, whomst we should rm!
+    name = newName; // we are this now... 
+  }
+}
 
 void OSAP::loop(void){
   // this is the root, so we kick all of the internal net operation from here 
@@ -40,6 +60,52 @@ void OSAP::destHandler(stackItem* item, uint16_t ptr){
   uint16_t wptr = 0;
   uint16_t len = 0;
   switch(item->data[ptr + 2]){
+    case RT_RENAME_REQ:
+      { 
+        // following an example... 
+        // int signature = 0;
+        // // this is zero ~ because we are not actually writing into the flash address, 
+        // // it's emulated eeprom 
+        // int16_t storedAddress = 0;
+        // char cBuffer[100];
+        // EEPROM.get(storedAddress, signature);
+        // // check... 
+        // if(signature == WRITTEN_SIGNATURE){
+        //   OSAP::error("sigCheck is deadbeef !");
+        //   EEPROM.get(storedAddress + sizeof(signature), rootName);
+        //   OSAP::error("rtName..." + String(rootName));
+        // } else {
+        //   OSAP::error("sigCheck is blank, will try writing");
+        //   EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
+        //   EEPROM.put(storedAddress + sizeof(signature), testName);
+        // }
+        payload[wptr ++] = PK_DEST;
+        payload[wptr ++] = RT_RENAME_RES;
+        payload[wptr ++] = item->data[ptr + 3];
+        // get the string... write is str8 to the name ? 
+        uint16_t rptr = ptr + 4;
+        String incoming = ts_readString(item->data, &rptr);
+        // uint16_t stringLen = ts_readUint32(item->data, &rptr);
+        // OSAP::error("str is " + String(stringLen) + " chars long?");
+        OSAP::error("str is: " + incoming);
+        name = incoming;
+        OSAP::error("name is now..." + name);
+        // and write to eeprom... 
+        int16_t storedAddress = 0;
+        int signature = 0;
+        strcpy(rootName, incoming.c_str());
+        EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
+        EEPROM.put(storedAddress + sizeof(signature), rootName);
+        EEPROM.commit();
+        // we need to get these, I guess as a char-array anyways, 
+        // there needs to be a "changeName" function (?) etc, 
+        payload[wptr ++] = 1; // can return '0' if not-d21 / also should do per-micro compile, 
+        #warning shouldn't copile flash stuff if we have a non-samd-supported chip (!)  
+        len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
+        stackClearSlot(item);
+        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+      }
+      break;
     case RT_DBG_STAT:
     case RT_DBG_ERRMSG:
     case RT_DBG_DBGMSG:

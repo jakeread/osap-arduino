@@ -27,6 +27,7 @@ enum OSAPDebugStreams { DBG_DFLT, LOOP };
 
 class OSAP : public Vertex {
   public: 
+    void init(void);
     void loop(void) override;
     void destHandler(stackItem* item, uint16_t ptr);
     OSAP(String _name);// : Vertex(_name);

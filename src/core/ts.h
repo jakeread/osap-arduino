@@ -52,6 +52,8 @@ no warranty is provided, and users accept all liability.
 #define RT_DBG_ERRMSG 152 
 #define RT_DBG_DBGMSG 153
 #define RT_DBG_RES 161
+#define RT_RENAME_REQ 171
+#define RT_RENAME_RES 172 
 
 // -------------------------------------------------------- VBus MVC Keys 
 
@@ -153,5 +155,6 @@ void ts_writeFloat64(double val, volatile unsigned char* buf, uint16_t* ptr);
 void ts_writeString(String* val, unsigned char* buf, uint16_t* ptr);
 void ts_writeString(String val, unsigned char* buf, uint16_t* ptr);
 void ts_writeString(unsigned char* str, uint16_t strLen, unsigned char* buf, uint16_t* ptr, uint16_t maxLen);
+String ts_readString(unsigned char* buf, uint16_t *ptr);
 
 #endif 
