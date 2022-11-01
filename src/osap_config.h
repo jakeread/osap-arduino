@@ -22,13 +22,16 @@ no warranty is provided, and users accept all liability.
 #define VT_MAXITEMSPERTURN 8
 
 // max # of endpoints that could be spawned here,
-#define MAX_CONTEXT_ENDPOINTS 32
+#define MAX_CONTEXT_ENDPOINTS 16
 
 // count of routes each endpoint can have, 
 #define ENDPOINT_MAX_ROUTES 2
-#define ENDPOINT_ROUTE_MAX_LEN 64 
+#define ENDPOINT_ROUTE_MAX_LEN 64
 
 // count of broadcast channels width, 
 #define VBUS_MAX_BROADCAST_CHANNELS 64 
+
+// squish it ?
+#define OSAP_IS_MINI 
 
 #endif 

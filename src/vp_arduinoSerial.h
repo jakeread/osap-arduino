@@ -60,7 +60,7 @@ class VPort_ArduinoSerial : public VPort {
     // keepalive state, 
     uint32_t lastRxTime = 0;
     uint32_t lastTxTime = 0;
-    uint8_t keepAlivePacket[3] = {3, SERLINK_KEY_KEEPALIVE, 0};
+    uint8_t keepAlivePacket[3] = {3, SERLINK_KEY_KEEPALIVE, 0}; // this could be in flashmem, bruh, RAM is plus-valueable 
     // guard on double transmits 
     uint8_t lastIdRxd = 0;
     // incoming stash

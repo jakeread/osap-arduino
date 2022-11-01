@@ -22,8 +22,13 @@ uint32_t OSAP::loopItemsHighWaterMark = 0;
 uint32_t errorCount = 0;
 uint32_t debugCount = 0;
 // strings...
+#ifndef OSAP_IS_MINI
 unsigned char latestError[VT_SLOTSIZE];
 unsigned char latestDebug[VT_SLOTSIZE];
+#else 
+unsigned char latestError[1];
+unsigned char latestDebug[1];
+#endif 
 uint16_t latestErrorLen = 0;
 uint16_t latestDebugLen = 0;
 
@@ -69,10 +74,13 @@ void OSAP::destHandler(stackItem* item, uint16_t ptr){
   }
 }
 
+#ifndef OSAP_IS_MINI
 uint8_t errBuf[255];
 uint8_t errBufEncoded[255];
+#endif 
 
 void debugPrint(String msg){
+  #ifndef OSAP_IS_MINI
   // whatever you want,
   uint32_t len = msg.length();
   // max this long, per the serlink bounds 
@@ -93,21 +101,26 @@ void debugPrint(String msg){
   errBuf[errBuf[0] - 1] = 0;
   // direct escape 
   Serial.write(errBuf, errBuf[0]);
+  #endif 
 }
 
 void OSAP::error(String msg, OSAPErrorLevels lvl){
-  //const char* str = msg.c_str();
-  // msg.getBytes(latestError, VT_SLOTSIZE);
-  // latestErrorLen = msg.length();
+  #ifndef OSAP_IS_MINI
+  const char* str = msg.c_str();
+  msg.getBytes(latestError, VT_SLOTSIZE);
+  latestErrorLen = msg.length();
+  debugPrint(msg);
+  #endif 
   errorCount ++;
-  // debugPrint(msg);
 }
 
 void OSAP::debug(String msg, OSAPDebugStreams stream){
-  // msg.getBytes(latestDebug, VT_SLOTSIZE);
-  // latestDebugLen = msg.length();
+  #ifndef OSAP_IS_MINI
+  msg.getBytes(latestDebug, VT_SLOTSIZE);
+  latestDebugLen = msg.length();
+  debugPrint(msg);
+  #endif 
   debugCount ++;
-  // debugPrint(msg);
 }
 
 // there's another one of these in ts.h, sorry again:
