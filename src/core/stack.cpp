@@ -120,17 +120,6 @@ void stackClearSlot(Vertex* vt, uint8_t od, stackItem* item){
     // and the item is the new firstFree element, 
     vt->firstFree[od] = item;
   }
-  // now we callback to the vertex; these fns are often used to clear flowcontrol condns 
-  switch(od){
-    case VT_STACK_ORIGIN:
-      vt->onOriginStackClear(indice);
-      break;
-    case VT_STACK_DESTINATION:
-      vt->onDestinationStackClear(indice);
-      break;
-    default:  // guarded against this above... 
-      break;
-  }
 }
 
 void stackClearSlot(stackItem* item){

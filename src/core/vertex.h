@@ -41,19 +41,11 @@ class Vertex {
     // just temporary stashes, used all over the place to prep messages... 
     static uint8_t payload[VT_SLOTSIZE];
     static uint8_t datagram[VT_SLOTSIZE];
-    // -------------------------------- FN PTRS 
-    // these are *genuine function ptrs* not member functions, my dudes 
-    void (*loop_cb)(Vertex* vt) = nullptr;
-    // to notify for clear-out callbacks / flowcontrol etc 
-    void (*onOriginStackClear_cb)(Vertex* vt, uint8_t slot) = nullptr;
-    void (*onDestinationStackClear_cb)(Vertex* vt, uint8_t slot) = nullptr;
     // -------------------------------- Methods
     virtual void loop(void);
     virtual void destHandler(stackItem* item, uint16_t ptr);
     void pingRequestHandler(stackItem* item, uint16_t ptr);
     void scopeRequestHandler(stackItem* item, uint16_t ptr);
-    virtual void onOriginStackClear(uint8_t slot);
-    virtual void onDestinationStackClear(uint8_t slot);
     // -------------------------------- DATA
     // a type, a position, a name 
     uint8_t type = VT_TYPE_CODE;
@@ -74,25 +66,16 @@ class Vertex {
     Vertex* children[VT_MAXCHILDREN]; // I think this is OK on storage: just pointers 
     uint16_t numChildren = 0;
     // sometimes a vertex is a vport, sometimes it is a vbus, 
+    // we use these ptrs to reach thru to that during the transport loop 
     VPort* vport;
     VBus* vbus;
     // -------------------------------- CONSTRUCTORS 
     // base constructor, 
-    Vertex( 
-      Vertex* _parent, 
-      const char* _name,  // name given at compile time 
-      void (*_loop)(Vertex* vt),
-      void (*_onOriginStackClear)(Vertex* vt, uint8_t slot),
-      void (*_onDestinationStackClear)(Vertex* vt, uint8_t slot)
-    );
-    // parent only (used by )
-    Vertex(
-      Vertex* _parent
-    ) : Vertex(_parent, "unnammed", nullptr, nullptr, nullptr){};
+    Vertex(Vertex* _parent, const char* _name);
+    // parent only (used by VPort and VBus)
+    Vertex(Vertex* _parent) : Vertex(_parent, "unnammed"){};
     // no args (used by root) 
-    Vertex(
-      void
-    ) : Vertex(nullptr, "unnammed", nullptr, nullptr, nullptr){};
+    Vertex(void) : Vertex(nullptr, "unnammed"){};
 };
 
 // ---------------------------------------------- VPort 

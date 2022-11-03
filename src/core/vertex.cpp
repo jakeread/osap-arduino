@@ -25,10 +25,7 @@ uint8_t Vertex::datagram[VT_SLOTSIZE];
 // ---------------------------------------------- Vertex Constructor and Defaults 
 
 Vertex::Vertex( 
-  Vertex* _parent, const char* _name, 
-  void (*_loop)(Vertex* vt),
-  void (*_onOriginStackClear)(Vertex* vt, uint8_t slot),
-  void (*_onDestinationStackClear)(Vertex* vt, uint8_t slot)
+  Vertex* _parent, const char* _name
 ){
   // copy name in and terminate if too long, 
   strncpy(name, _name, VT_MAXNAMELEN);
@@ -36,10 +33,6 @@ Vertex::Vertex(
     name[VT_MAXNAMELEN - 1] = '\0';
   }
   stackReset(this);
-  // callback assignments... 
-  loop_cb = _loop;
-  onOriginStackClear_cb = _onOriginStackClear;
-  onDestinationStackClear_cb = _onDestinationStackClear;
   // insert self to osap net,
   if(_parent == nullptr){
     type = VT_TYPE_ROOT;
@@ -56,7 +49,7 @@ Vertex::Vertex(
 }
 
 void Vertex::loop(void){
-  if(loop_cb != nullptr) return loop_cb(this);
+  // default loop is noop 
 }
 
 void Vertex::destHandler(stackItem* item, uint16_t ptr){
@@ -126,15 +119,6 @@ void Vertex::scopeRequestHandler(stackItem* item, uint16_t ptr){
   uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
   stackClearSlot(item);
   stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
-}
-
-
-void Vertex::onOriginStackClear(uint8_t slot){
-  if(onOriginStackClear_cb != nullptr) return onOriginStackClear_cb(this, slot);
-}
-
-void Vertex::onDestinationStackClear(uint8_t slot){
-  if(onDestinationStackClear_cb != nullptr) return onDestinationStackClear_cb(this, slot);
 }
 
 // ---------------------------------------------- VPort Constructor and Defaults 
