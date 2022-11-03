@@ -29,12 +29,18 @@ class OSAP : public Vertex {
   public: 
     void loop(void) override;
     void destHandler(stackItem* item, uint16_t ptr);
-    OSAP(String _name);// : Vertex(_name);
+    OSAP(const char* _name);// : Vertex(_name);
+    #ifndef OSAP_IS_MINI
     static void error(String msg, OSAPErrorLevels lvl = MINOR );
     static void debug(String msg, OSAPDebugStreams stream = DBG_DFLT );
+    #endif 
     static uint32_t loopItemsHighWaterMark;
     // I'm uuuh... going to stuff type stuff in here, as a hack, sorry:
     float readFloat(uint8_t* buf);
 };
+
+#define OSAP_DEBUG(msg) 
+#define OSAP_ERROR(msg)
+#define OSAP_ERROR_HALTING(msg)
 
 #endif 

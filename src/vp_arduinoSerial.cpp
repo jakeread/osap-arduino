@@ -16,13 +16,13 @@ is; no warranty is provided, and users accept all liability.
 #include "utils/cobs.h"
 #include "osap.h"
 
-VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, String _name, Uart* _uart
+VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, char* _name, Uart* _uart
 ) : VPort ( _parent, _name ){
   stream = _uart; // should convert Uart* to Stream*, as Uart inherits stream 
   uart = _uart; 
 }
 
-VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, String _name, Serial_* _usbcdc
+VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, char* _name, Serial_* _usbcdc
 ) : VPort ( _parent, _name ){
   stream = _usbcdc;
   usbcdc = _usbcdc;
@@ -58,7 +58,7 @@ void VPort_ArduinoSerial::loop(void){
       lastRxTime = millis();
       // 1st, we checksum:
       if(rxBuffer[0] != rxBufferWp){ 
-        OSAP::error("serLink bad checksum, cs: " + String(rxBuffer[0]) + " wp: " + String(rxBufferWp), MINOR);
+        OSAP_ERROR("serLink bad checksum, cs: " + String(rxBuffer[0]) + " wp: " + String(rxBufferWp));
       } else {
         // acks, packs, or broken things 
         switch(rxBuffer[1]){
@@ -68,7 +68,7 @@ void VPort_ArduinoSerial::loop(void){
               inAwaitingId = rxBuffer[2]; // stash ID 
               inAwaitingLen = cobsDecode(&(rxBuffer[3]), rxBufferWp - 2, inAwaiting); // fill inAwaiting 
             } else {
-              OSAP::error("serLink double rx", MINOR);
+              OSAP_ERROR("serLink double rx");
             }
             break;
           case SERLINK_KEY_ACK:
@@ -155,7 +155,7 @@ void VPort_ArduinoSerial::checkOutputStates(void){
       outAwaitingLen = 0;
     }
   } else if (millis() - lastTxTime > SERLINK_KEEPALIVE_TX_TIME && txBufferLen == 0){
-    //OSAP::debug("keepalive-ing " + name + " " + String(isOpen()));
+    //OSAP_DEBUG("keepalive-ing " + name + " " + String(isOpen()));
     memcpy(txBuffer, keepAlivePacket, 3);
     txBufferLen = 3;
     lastTxTime = millis();

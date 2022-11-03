@@ -69,9 +69,9 @@ boolean internalTransport(stackItem* item, uint16_t ptr){
       case PK_SIB:
         // check validity of route & shift our reference vt,
         if(vt->parent == nullptr){
-          OSAP::error("no parent at " + vt->name + " during sib transport"); return true;
+          OSAP_ERROR("no parent at " + vt->name + " during sib transport"); return true;
         } else if (arg >= vt->parent->numChildren){
-          OSAP::error("no sibling " + String(arg) + " at " + vt->name + " during sib transport"); return true;
+          OSAP_ERROR("no sibling " + String(arg) + " at " + vt->name + " during sib transport"); return true;
         } else {
           // this is it: we go fwds to this vt & end-of-switch statements increment ptrs
           vt = vt->parent->children[arg];
@@ -79,7 +79,7 @@ boolean internalTransport(stackItem* item, uint16_t ptr){
         break;
       case PK_PARENT:
         if(vt->parent == nullptr){
-          OSAP::error("no parent at " + vt->name + " during parent transport"); return true;
+          OSAP_ERROR("no parent at " + vt->name + " during parent transport"); return true;
         } else {
           // likewise... 
           vt = vt->parent;
@@ -87,7 +87,7 @@ boolean internalTransport(stackItem* item, uint16_t ptr){
         break;
       case PK_CHILD:
         if(arg >= vt->numChildren){
-          OSAP::error("no child " + String(arg) + " at " + vt->name + " during child transport"); return true;
+          OSAP_ERROR("no child " + String(arg) + " at " + vt->name + " during child transport"); return true;
         } else {
           // again, just walk fwds... 
           vt = vt->children[arg];
@@ -113,7 +113,7 @@ boolean internalTransport(stackItem* item, uint16_t ptr){
           return false; 
         }
       default:
-        OSAP::error("internal transport failure, ptr walk ends at unknown key");
+        OSAP_ERROR("internal transport failure, ptr walk ends at unknown key");
         return true;
     } // end switch 
     fwdPtr += 2;
@@ -133,12 +133,12 @@ void osapLoop(Vertex* root){
   // check now if items are nearly oversized...
   // see notes in the log from 2022-06-22 if this error occurs, 
   if(itemListLen >= MAX_ITEMS_PER_LOOP - 2){
-    OSAP::error("loop items exceeds " + String(MAX_ITEMS_PER_LOOP) + ", breaking per-loop transport properties... pls fix", HALTING);
+    OSAP_ERROR_HALTING("loop items exceeds " + String(MAX_ITEMS_PER_LOOP) + ", breaking per-loop transport properties... pls fix");
   }
   // stash high-water mark,
   if(itemListLen > OSAP::loopItemsHighWaterMark) OSAP::loopItemsHighWaterMark = itemListLen;
   // log 'em 
-  // OSAP::debug("list has " + String(itemListLen) + " elements", LOOP);
+  // OSAP_DEBUG("list has " + String(itemListLen) + " elements", LOOP);
   // otherwise we can carry on... the item should be sorted, global vars, 
   listSort(itemList, itemListLen);
   // then we can handle 'em one by one 
@@ -150,15 +150,15 @@ void osapLoop(Vertex* root){
 void osapItemHandler(stackItem* item){
   // clear dead items, 
   if(item->timeToDeath < 0){
-    OSAP::debug(  "item at " + item->vt->name + " times out w/ " + String(item->timeToDeath) + 
-                  " ms to live, of " + String(ts_readUint16(item->data, 0)) + " ttl", LOOP);
+    OSAP_DEBUG(  "item at " + item->vt->name + " times out w/ " + String(item->timeToDeath) + 
+                  " ms to live, of " + String(ts_readUint16(item->data, 0)) + " ttl");
     stackClearSlot(item);
     return;
   }
   // get a ptr for the item, 
   uint16_t ptr = 0;
   if(!findPtr(item->data, &ptr)){    
-    OSAP::error("item at " + item->vt->name + " unable to find ptr, deleting...");
+    OSAP_ERROR("item at " + item->vt->name + " unable to find ptr, deleting...");
     stackClearSlot(item);
     return;
   }
@@ -176,7 +176,7 @@ void osapItemHandler(stackItem* item){
       break;
     case PK_PINGRES:
     case PK_SCOPERES:
-      OSAP::error("ping or scope request issued to " + item->vt->name + " not handling those in embedded", MEDIUM);
+      OSAP_ERROR("ping or scope request issued to " + item->vt->name + " not handling those in embedded");
       stackClearSlot(item);
       break;
     // ------------------------------------------ Internal Transport 
@@ -191,7 +191,7 @@ void osapItemHandler(stackItem* item){
     case PK_PFWD:
       // port forward...
       if(item->vt->vport == nullptr){
-        OSAP::error("pfwd to non-vport " + item->vt->name, MEDIUM);
+        OSAP_ERROR("pfwd to non-vport " + item->vt->name);
         stackClearSlot(item);
       } else {
         if(item->vt->vport->cts()){
@@ -207,7 +207,7 @@ void osapItemHandler(stackItem* item){
     case PK_BBRD:
       // bus forward / bus broadcast: 
       if(item->vt->vbus == nullptr){
-        OSAP::error("bfwd to non-vbus " + item->vt->name, MEDIUM);
+        OSAP_ERROR("bfwd to non-vbus " + item->vt->name);
         stackClearSlot(item);
       } else {
         // arg is rxAddr for bus-forwards, is broadcastChannel for bus-broadcast, 
@@ -217,7 +217,7 @@ void osapItemHandler(stackItem* item){
             if(walkPtr(item->data, item->vt, 1, ptr)){
               item->vt->vbus->send(item->data, item->len, arg);
             } else {
-              OSAP::error("bfwd fails for bad ptr walk");
+              OSAP_ERROR("bfwd fails for bad ptr walk");
             }
             stackClearSlot(item);
           } else {
@@ -226,10 +226,10 @@ void osapItemHandler(stackItem* item){
         } else if (item->data[ptr + 1] == PK_BBRD){
           if(item->vt->vbus->ctb(arg)){
             if(walkPtr(item->data, item->vt, 1, ptr)){
-              // OSAP::debug("broadcasting on ch " + String(arg));
+              // OSAP_DEBUG("broadcasting on ch " + String(arg));
               item->vt->vbus->broadcast(item->data, item->len, arg);
             } else {
-              OSAP::error("bbrd fails for bad ptr walk");
+              OSAP_ERROR("bbrd fails for bad ptr walk");
             }
             stackClearSlot(item);
           } else {
@@ -237,17 +237,17 @@ void osapItemHandler(stackItem* item){
           }
         } else {
           // doesn't make any sense, we switched in on these terms... 
-          OSAP::error("absolute nonsense", MEDIUM);
+          OSAP_ERROR("absolute nonsense");
           stackClearSlot(item);
         }
       }
       break;
     case PK_LLESCAPE:
-      OSAP::error("lldebug to embedded, dumping", MINOR);
+      OSAP_ERROR("lldebug to embedded, dumping");
       stackClearSlot(item);
       break;
     default:
-      OSAP::error("unrecognized ptr to " + item->vt->name + " " + String(PK_READKEY(item->data[ptr + 1])), MINOR);
+      OSAP_ERROR("unrecognized ptr to " + item->vt->name + " " + String(PK_READKEY(item->data[ptr + 1])));
       stackClearSlot(item);
       // error, delete, 
       break;

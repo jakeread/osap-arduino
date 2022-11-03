@@ -48,6 +48,8 @@ boolean beforeQueryDefault(void);
 class Endpoint : public Vertex {
   public:
     // local data store & length, 
+    // we *should* have users pass us ptrs to these, and... 
+    // tell us when they are new ? or something ? 
     uint8_t data[VT_SLOTSIZE];
     uint16_t dataLen = 0; 
     // callbacks: on new data & before a query is written out 
@@ -69,7 +71,7 @@ class Endpoint : public Vertex {
     uint8_t nextAckID = 77;
     // base constructor, 
     Endpoint(   
-      Vertex* _parent, String _name, 
+      Vertex* _parent, const char* _name, 
       EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len),
       boolean (*_beforeQuery)(void)
     );
@@ -77,21 +79,21 @@ class Endpoint : public Vertex {
     // here: https://en.cppreference.com/w/cpp/language/constructor 
     // onData only, 
     Endpoint(   
-      Vertex* _parent, String _name,
+      Vertex* _parent, const char* _name,
       EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len)
     ) : Endpoint ( 
       _parent, _name, _onData, nullptr
     ){};
     // beforeQuery only, 
     Endpoint(   
-      Vertex* _parent, String _name, 
+      Vertex* _parent, const char* _name, 
       boolean (*_beforeQuery)(void)
     ) : Endpoint (
       _parent, _name, nullptr, _beforeQuery
     ){};
     // name only, 
     Endpoint(   
-      Vertex* _parent, String _name
+      Vertex* _parent, const char* _name
     ) : Endpoint (
       _parent, _name, nullptr, nullptr
     ){};

@@ -25,13 +25,16 @@ uint8_t Vertex::datagram[VT_SLOTSIZE];
 // ---------------------------------------------- Vertex Constructor and Defaults 
 
 Vertex::Vertex( 
-  Vertex* _parent, String _name, 
+  Vertex* _parent, const char* _name, 
   void (*_loop)(Vertex* vt),
   void (*_onOriginStackClear)(Vertex* vt, uint8_t slot),
   void (*_onDestinationStackClear)(Vertex* vt, uint8_t slot)
 ){
-  // name self, reset stack... 
-  name = _name;
+  // copy name in and terminate if too long, 
+  strncpy(name, _name, VT_MAXNAMELEN);
+  if(strlen(_name) > VT_MAXNAMELEN){
+    name[VT_MAXNAMELEN - 1] = '\0';
+  }
   stackReset(this);
   // callback assignments... 
   loop_cb = _loop;
@@ -43,7 +46,7 @@ Vertex::Vertex(
     indice = 0;
   } else {
     if (_parent->numChildren >= VT_MAXCHILDREN) {
-      OSAP::error("trying to nest a vertex under " + _parent->name + " but we have reached VT_MAXCHILDREN limit", HALTING);
+      OSAP_ERROR_HALTING("trying to nest a vertex under " + _parent->name + " but we have reached VT_MAXCHILDREN limit");
     } else {
       this->indice = _parent->numChildren;
       this->parent = _parent;
@@ -58,7 +61,7 @@ void Vertex::loop(void){
 
 void Vertex::destHandler(stackItem* item, uint16_t ptr){
   // generic handler...
-  OSAP::debug("generic destHandler at " + name);
+  OSAP_DEBUG("generic destHandler at " + name);
   stackClearSlot(item);
 }
 
@@ -97,7 +100,7 @@ void Vertex::scopeRequestHandler(stackItem* item, uint16_t ptr){
     ts_writeUint16(vbus->addrSpaceSize, payload, &wptr);
     ts_writeUint16(vbus->ownRxAddr, payload, &wptr);
     // then *so long a we're not overwriting*, we stuff link-state bytes, 
-    while(wptr + 8 + name.length() <= VT_SLOTSIZE){
+    while(wptr + 8 + strlen(name) <= VT_SLOTSIZE){
       payload[wptr] = 0;
       for(uint8_t b = 0; b < 8; b ++){
         payload[wptr] |= (vbus->isOpen(addr) ? 1 : 0) << b;
@@ -137,8 +140,12 @@ void Vertex::onDestinationStackClear(uint8_t slot){
 // ---------------------------------------------- VPort Constructor and Defaults 
 
 VPort::VPort(
-  Vertex* _parent, String _name
-) : Vertex(_parent, "vp_" + _name, nullptr, nullptr, nullptr) {
+  Vertex* _parent, const char* _name
+) : Vertex(_parent, nullptr, nullptr, nullptr, nullptr) {
+  // set name,
+  #warning need to guard for too-big-ness, 
+  strcpy(name, "vp_");
+  strcat(name, _name);
   // set type, reacharound, & callbacks 
   type = VT_TYPE_VPORT;
   vport = this; 
@@ -147,8 +154,10 @@ VPort::VPort(
 // ---------------------------------------------- VBus Constructor and Defaults 
 
 VBus::VBus(
-  Vertex* _parent, String _name
-) : Vertex(_parent, "vb_" + _name, nullptr, nullptr, nullptr) {
+  Vertex* _parent, const char* _name
+) : Vertex(_parent, nullptr, nullptr, nullptr, nullptr) {
+  strcpy(name, "vb_");
+  strcat(name, _name);
   // set type, reacharound, & callbacks 
   type = VT_TYPE_VBUS;
   vbus = this;
@@ -166,14 +175,14 @@ void VBus::injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastC
     // we could definitely do this faster w/o using the stackLoadSlot fn, but we won't do that yet... 
     // will use the vertex-global datagram stash for that 
     uint16_t ptr = 0; 
-    if(!findPtr(data, &ptr)){ OSAP::error("can't find ptr during broadcast injest", MEDIUM); return; }
+    if(!findPtr(data, &ptr)){ OSAP_ERROR("can't find ptr during broadcast injest"); return; }
     // packet should look like 
     // ttl, segsize, <prev_instruct>, <bbrd_txAddr>, PTR, <payload>
     // we want to inject the channel's route such that 
     // ttl, segsize, <prev_instruct>, <bbrd_txAddr>, PTR, <ch_route>, <payload>
     // shouldn't actually be too difficult, eh?
     // we do need to guard on lengths, 
-    if(len + route->pathLen > VT_SLOTSIZE){ OSAP::error("datagram + channel route is too large", MEDIUM); return; }
+    if(len + route->pathLen > VT_SLOTSIZE){ OSAP_ERROR("datagram + channel route is too large"); return; }
     // copy up to PTR: pck[ptr] == PK_PTR, so we want to *include* this byte, having len ptr + 1, 
     memcpy(datagram, data, ptr + 1);
     // copy in route, but recall that as initialized, route->path[0] == PK_PTR, we don't want to double that up, 
@@ -269,12 +278,12 @@ void VBus::destHandler(stackItem* item, uint16_t ptr){
         payload[wptr ++] = id;
         if(ch >= VBUS_MAX_BROADCAST_CHANNELS){
           // won't go 
-          OSAP::error("attempt to write to oob broadcast channel");
+          OSAP_ERROR("attempt to write to oob broadcast channel");
           payload[wptr ++] = 0;
         } else {
           // should go 
           payload[wptr ++] = 1;          
-          if(broadcastChannels[ch] != nullptr) OSAP::debug("overwriting previous broadcast ch at " + String(ch));
+          if(broadcastChannels[ch] != nullptr) OSAP_DEBUG("overwriting previous broadcast ch at " + String(ch));
           uint16_t ttl = ts_readUint16(item->data, ptr + 5);
           uint16_t segSize = ts_readUint16(item->data, ptr + 7);
           uint8_t* path = &(item->data[ptr + 9]);
@@ -320,7 +329,7 @@ void VBus::destHandler(stackItem* item, uint16_t ptr){
         break;
       }
     default:
-      OSAP::error("vbus rx msg w/ unrecognized vbus key " + String(item->data[ptr + 2]) + " bailing", MINOR);
+      OSAP_ERROR("vbus rx msg w/ unrecognized vbus key " + String(item->data[ptr + 2]) + " bailing");
       stackClearSlot(item);
       break;
   } 

@@ -32,7 +32,10 @@ unsigned char latestDebug[1];
 uint16_t latestErrorLen = 0;
 uint16_t latestDebugLen = 0;
 
-OSAP::OSAP(String _name) : Vertex("rt_" + _name){};
+OSAP::OSAP(const char* _name) : Vertex(){
+  strcpy(name, "rt_");
+  strcat(name, _name);
+};
 
 void OSAP::loop(void){
   // this is the root, so we kick all of the internal net operation from here 
@@ -68,19 +71,20 @@ void OSAP::destHandler(stackItem* item, uint16_t ptr){
       stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
       break;
     default:
-      OSAP::error("unrecognized key to root node " + String(item->data[ptr + 2]));
+      OSAP_ERROR("unrecognized key to root node " + String(item->data[ptr + 2]));
       stackClearSlot(item);
       break;
   }
 }
 
 #ifndef OSAP_IS_MINI
+// later we can... make these w/ the OSAP_DEBUG and OSAP_ERROR macros, 
+// to do i.e. simple logging if we are MINI and more verbosity if we are a BIGBOI 
+
 uint8_t errBuf[255];
 uint8_t errBufEncoded[255];
-#endif 
 
 void debugPrint(String msg){
-  #ifndef OSAP_IS_MINI
   // whatever you want,
   uint32_t len = msg.length();
   // max this long, per the serlink bounds 
@@ -101,27 +105,24 @@ void debugPrint(String msg){
   errBuf[errBuf[0] - 1] = 0;
   // direct escape 
   Serial.write(errBuf, errBuf[0]);
-  #endif 
 }
 
 void OSAP::error(String msg, OSAPErrorLevels lvl){
-  #ifndef OSAP_IS_MINI
   const char* str = msg.c_str();
   msg.getBytes(latestError, VT_SLOTSIZE);
   latestErrorLen = msg.length();
   debugPrint(msg);
-  #endif 
   errorCount ++;
 }
 
 void OSAP::debug(String msg, OSAPDebugStreams stream){
-  #ifndef OSAP_IS_MINI
   msg.getBytes(latestDebug, VT_SLOTSIZE);
   latestDebugLen = msg.length();
   debugPrint(msg);
-  #endif 
   debugCount ++;
 }
+
+#endif 
 
 // there's another one of these in ts.h, sorry again:
 union chnk_float32 {

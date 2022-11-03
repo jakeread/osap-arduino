@@ -33,10 +33,13 @@ EndpointRoute::~EndpointRoute(void){
 
 // base constructor, 
 Endpoint::Endpoint(
-  Vertex* _parent, String _name, 
+  Vertex* _parent, const char* _name, 
   EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len),
   boolean (*_beforeQuery)(void)
-) : Vertex(_parent, "ep_" + _name) {
+) : Vertex(_parent) {
+  #warning also guard long-ness here 
+  strcpy(name, "ep_");
+  strcat(name, _name);
   // type, 
 	type = VT_TYPE_ENDPOINT;
   // set callbacks,
@@ -83,7 +86,7 @@ void Endpoint::write(boolean _data){
 uint8_t Endpoint::addRoute(Route* _route, uint8_t _mode, uint32_t _timeoutLength){
 	// guard against more-than-allowed routes 
 	if(numRoutes >= ENDPOINT_MAX_ROUTES) {
-    OSAP::error("route add is oob", MEDIUM); 
+    OSAP_ERROR("route add is oob"); 
     return 0;
 	}
   // build, stash, increment 
@@ -144,7 +147,7 @@ void Endpoint::loop(void){
     if(stackEmptySlot(this, VT_STACK_ORIGIN)){
       // make sure we'll have enough space...
       if(dataLen + routeTxList[r]->route->pathLen + 3 >= VT_SLOTSIZE){
-        OSAP::error("attempting to write oversized datagram at " + name, MEDIUM);
+        OSAP_ERROR("attempting to write oversized datagram at " + name);
         routeTxList[r]->state = EP_TX_IDLE;
         continue;
       }
@@ -304,7 +307,7 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           uint16_t segSize = ts_readUint16(item->data, ptr + 7);
           uint8_t* path = &(item->data[ptr + 9]);
           uint16_t pathLen = item->len - (ptr + 10);
-          OSAP::debug("adding path... w/ ttl " + String(ttl) + " ss " + String(segSize) + " pathLen " + String(pathLen));
+          OSAP_DEBUG("adding path... w/ ttl " + String(ttl) + " ss " + String(segSize) + " pathLen " + String(pathLen));
           uint8_t routeIndice = addRoute(new Route(path, pathLen, ttl, segSize), mode);
           payload[4] = routeIndice;
         } else {
@@ -351,7 +354,7 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
       }
       break;
     default:
-      OSAP::error("endpoint rx msg w/ unrecognized endpoint key " + String(item->data[ptr + 2]) + " bailing", MINOR);
+      OSAP_ERROR("endpoint rx msg w/ unrecognized endpoint key " + String(item->data[ptr + 2]) + " bailing");
       stackClearSlot(item);
       break;
   } // end switch... 

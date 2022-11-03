@@ -56,7 +56,7 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
   if(pck[ptr] != PK_PTR){
     // if that fails, bail... 
     if(!findPtr(pck, &ptr)){
-      OSAP::error("before a ptr walk, ptr is out of place...");
+      OSAP_ERROR("before a ptr walk, ptr is out of place...");
       return false;
     }
   }
@@ -101,7 +101,7 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
         ptr += 2;
         // though this should only ever be called w/ one step, 
         if(steps != 1){
-          OSAP::error("likely bad call to walkPtr, we have port fwd w/ more than one step");
+          OSAP_ERROR("likely bad call to walkPtr, we have port fwd w/ more than one step");
           return false;
         }
         break;
@@ -112,7 +112,7 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
         ptr += 2;
         // this also should only ever be called w/ one step, 
         if(steps != 1){
-          OSAP::error("likely bad call to walkPtr, we have bus fwd w/ more than one step");
+          OSAP_ERROR("likely bad call to walkPtr, we have bus fwd w/ more than one step");
           return false; 
         }
         break;
@@ -123,7 +123,7 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
         ptr += 2;
         break;
       default:
-        OSAP::error("have out of place keys in the ptr walk...");
+        OSAP_ERROR("have out of place keys in the ptr walk...");
         return false;
     }
   } // end steps, alleged success,  
@@ -137,7 +137,7 @@ uint16_t writeDatagram(uint8_t* gram, uint16_t maxGramLength, Route* route, uint
   memcpy(&(gram[wptr]), route->path, route->pathLen);
   wptr += route->pathLen;
   if(wptr + payloadLen > route->segSize){
-    OSAP::error("writeDatagram asked to write packet that exceeds segSize, bailing", MEDIUM);
+    OSAP_ERROR("writeDatagram asked to write packet that exceeds segSize, bailing");
     return 0;
   }
   memcpy(&(gram[wptr]), payload, payloadLen);
@@ -152,13 +152,13 @@ uint16_t writeReply(uint8_t* ogGram, uint8_t* gram, uint16_t maxGramLength, uint
   // now find a ptr, 
   uint16_t ptr = 0;
   if(!findPtr(ogGram, &ptr)){
-    OSAP::error("writeReply can't find the pointer...", MEDIUM);
+    OSAP_ERROR("writeReply can't find the pointer...");
     return 0;
   }
   // do we have enough space? it's the minimum of the allowed segsize & stated maxGramLength, 
   maxGramLength = min(maxGramLength, ts_readUint16(ogGram, 2));
   if(ptr + 1 + payloadLen > maxGramLength){
-    OSAP::error("writeReply asked to write packet that exceeds maxGramLength, bailing", MEDIUM);
+    OSAP_ERROR("writeReply asked to write packet that exceeds maxGramLength, bailing");
     return 0;
   }
   // write the payload in, apres-pointer, 
@@ -184,7 +184,7 @@ uint16_t writeReply(uint8_t* ogGram, uint8_t* gram, uint16_t maxGramLength, uint
         gram[wptr ++] = ogGram[rptr + 1];
         break;
       default:
-        OSAP::error("writeReply fails to reverse this packet, bailing", MEDIUM);
+        OSAP_ERROR("writeReply fails to reverse this packet, bailing");
         return 0;
     }
   } // end thru-loop, 

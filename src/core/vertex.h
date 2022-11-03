@@ -58,7 +58,7 @@ class Vertex {
     // a type, a position, a name 
     uint8_t type = VT_TYPE_CODE;
     uint16_t indice = 0;
-    String name; 
+    char name[VT_MAXNAMELEN];  // 32 char max reserved for names,  
     // a time tag, for when we were last scoped (need for graph traversals, final implementation tbd)
     uint32_t scopeTimeTag = 0;
     // stacks; 
@@ -79,13 +79,15 @@ class Vertex {
     // -------------------------------- CONSTRUCTORS 
     Vertex( 
       Vertex* _parent, 
-      String _name, 
+      const char* _name,  // name given at compile time 
       void (*_loop)(Vertex* vt),
       void (*_onOriginStackClear)(Vertex* vt, uint8_t slot),
       void (*_onDestinationStackClear)(Vertex* vt, uint8_t slot)
     );
-    Vertex(Vertex* _parent, String _name) : Vertex(_parent, _name, nullptr, nullptr, nullptr){};
-    Vertex(String _name) : Vertex(nullptr, _name, nullptr, nullptr, nullptr){};
+    Vertex(Vertex* _parent, const char* _name) : Vertex(_parent, _name, nullptr, nullptr, nullptr){};
+    Vertex(Vertex* _parent) : Vertex(_parent, "unnammed", nullptr, nullptr, nullptr){};
+    Vertex(const char* _name) : Vertex(nullptr, _name, nullptr, nullptr, nullptr){};
+    Vertex(void) : Vertex(nullptr, "unnammed", nullptr, nullptr, nullptr){};
 };
 
 // ---------------------------------------------- VPort 
@@ -97,7 +99,7 @@ class VPort : public Vertex {
     virtual boolean cts(void) = 0;
     virtual boolean isOpen(void) = 0;
     // base constructor, 
-    VPort(Vertex* _parent, String _name);
+    VPort(Vertex* _parent, const char* _name);
 };
 
 // ---------------------------------------------- VBus 
@@ -125,7 +127,7 @@ class VBus : public Vertex{
     // has a width-of-addr-space, 
     uint16_t addrSpaceSize = 0;
     // base constructor, children inherit... 
-    VBus(Vertex* _parent, String _name);
+    VBus(Vertex* _parent, const char* _name);
 };
 
 #endif 

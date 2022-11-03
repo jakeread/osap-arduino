@@ -96,7 +96,7 @@ uint8_t stackGetItems(Vertex* vt, uint8_t od, stackItem** items, uint8_t maxItem
 void stackClearSlot(Vertex* vt, uint8_t od, stackItem* item){
   // this would be deadly, so:
   if(od > 1) {
-    OSAP::error("stackClearSlot, od > 1, badness", MEDIUM);
+    OSAP_ERROR("stackClearSlot, od > 1, badness");
     return;
   }
   // item is 0-len, etc 
