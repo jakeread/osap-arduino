@@ -33,8 +33,10 @@ uint16_t latestErrorLen = 0;
 uint16_t latestDebugLen = 0;
 
 OSAP::OSAP(const char* _name) : Vertex(){
+  // see vertex.cpp -> vport constructor for notes on this 
   strcpy(name, "rt_");
-  strcat(name, _name);
+  strncat(name, _name, VT_MAXNAMELEN - 4);
+  name[VT_MAXNAMELEN - 1] = '\0';
 };
 
 void OSAP::loop(void){

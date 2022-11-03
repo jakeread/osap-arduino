@@ -20,7 +20,7 @@ no warranty is provided, and users accept all liability.
 #define VT_STACKSIZE 2  // must be >= 2 for ringbuffer operation 
 #define VT_MAXCHILDREN 16
 #define VT_MAXITEMSPERTURN 8
-#define VT_MAXNAMELEN 32
+#define VT_MAXNAMELEN 31
 
 // max # of endpoints that could be spawned here,
 #define MAX_CONTEXT_ENDPOINTS 16

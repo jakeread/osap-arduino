@@ -81,8 +81,8 @@ class VPort_ArduinoSerial : public VPort {
     uint8_t txBufferLen = 0;
     uint8_t txBufferRp = 0;
     // -------------------------------- Constructors 
-    VPort_ArduinoSerial(Vertex* _parent, char* _name, Uart* _uart);
-    VPort_ArduinoSerial(Vertex* _parent, char* _name, Serial_* _usbcdc);
+    VPort_ArduinoSerial(Vertex* _parent, const char* _name, Uart* _uart);
+    VPort_ArduinoSerial(Vertex* _parent, const char* _name, Serial_* _usbcdc);
 };
 
 #endif 

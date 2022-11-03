@@ -16,13 +16,13 @@ is; no warranty is provided, and users accept all liability.
 #include "utils/cobs.h"
 #include "osap.h"
 
-VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, char* _name, Uart* _uart
+VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, const char* _name, Uart* _uart
 ) : VPort ( _parent, _name ){
   stream = _uart; // should convert Uart* to Stream*, as Uart inherits stream 
   uart = _uart; 
 }
 
-VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, char* _name, Serial_* _usbcdc
+VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, const char* _name, Serial_* _usbcdc
 ) : VPort ( _parent, _name ){
   stream = _usbcdc;
   usbcdc = _usbcdc;

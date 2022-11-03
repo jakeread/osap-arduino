@@ -77,6 +77,7 @@ class Vertex {
     VPort* vport;
     VBus* vbus;
     // -------------------------------- CONSTRUCTORS 
+    // base constructor, 
     Vertex( 
       Vertex* _parent, 
       const char* _name,  // name given at compile time 
@@ -84,10 +85,14 @@ class Vertex {
       void (*_onOriginStackClear)(Vertex* vt, uint8_t slot),
       void (*_onDestinationStackClear)(Vertex* vt, uint8_t slot)
     );
-    Vertex(Vertex* _parent, const char* _name) : Vertex(_parent, _name, nullptr, nullptr, nullptr){};
-    Vertex(Vertex* _parent) : Vertex(_parent, "unnammed", nullptr, nullptr, nullptr){};
-    Vertex(const char* _name) : Vertex(nullptr, _name, nullptr, nullptr, nullptr){};
-    Vertex(void) : Vertex(nullptr, "unnammed", nullptr, nullptr, nullptr){};
+    // parent only (used by )
+    Vertex(
+      Vertex* _parent
+    ) : Vertex(_parent, "unnammed", nullptr, nullptr, nullptr){};
+    // no args (used by root) 
+    Vertex(
+      void
+    ) : Vertex(nullptr, "unnammed", nullptr, nullptr, nullptr){};
 };
 
 // ---------------------------------------------- VPort 

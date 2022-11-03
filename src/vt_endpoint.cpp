@@ -37,9 +37,10 @@ Endpoint::Endpoint(
   EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len),
   boolean (*_beforeQuery)(void)
 ) : Vertex(_parent) {
-  #warning also guard long-ness here 
+  // see vertex.cpp -> vport constructor for notes on this 
   strcpy(name, "ep_");
-  strcat(name, _name);
+  strncat(name, _name, VT_MAXNAMELEN - 4);
+  name[VT_MAXNAMELEN - 1] = '\0';
   // type, 
 	type = VT_TYPE_ENDPOINT;
   // set callbacks,

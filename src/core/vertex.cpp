@@ -141,11 +141,15 @@ void Vertex::onDestinationStackClear(uint8_t slot){
 
 VPort::VPort(
   Vertex* _parent, const char* _name
-) : Vertex(_parent, nullptr, nullptr, nullptr, nullptr) {
-  // set name,
-  #warning need to guard for too-big-ness, 
+) : Vertex(_parent) {
+  // append vp_ and copy-in given name, 
   strcpy(name, "vp_");
-  strcat(name, _name);
+  // we could check-and-swap, or just use this here... copying in no-more than avail. space
+  // https://cplusplus.com/reference/cstring/strncat/ 
+  strncat(name, _name, VT_MAXNAMELEN - 4);
+  // we've left room for it above, let's ensure there's a null termination: 
+  // and in cases where src is > num, no null terminator is implicitly applied, so we do it:
+  name[VT_MAXNAMELEN - 1] = '\0';
   // set type, reacharound, & callbacks 
   type = VT_TYPE_VPORT;
   vport = this; 
@@ -155,9 +159,11 @@ VPort::VPort(
 
 VBus::VBus(
   Vertex* _parent, const char* _name
-) : Vertex(_parent, nullptr, nullptr, nullptr, nullptr) {
+) : Vertex(_parent) {
+  // see vertex.cpp -> vport constructor for notes on this 
   strcpy(name, "vb_");
-  strcat(name, _name);
+  strncat(name, _name, VT_MAXNAMELEN - 4);
+  name[VT_MAXNAMELEN - 1] = '\0';
   // set type, reacharound, & callbacks 
   type = VT_TYPE_VBUS;
   vbus = this;
