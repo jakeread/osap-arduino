@@ -122,8 +122,7 @@ void VPort_ArduinoSerial::loop(void){
 }
 
 void VPort_ArduinoSerial::send(uint8_t* data, uint16_t len){
-  //digitalWrite(A4, !digitalRead(A4));
-  // double guard?
+  // cts() == true means that our outAwaiting has been tx'd, is drained, etc 
   if(!cts()) return;
   // setup, 
   outAwaiting[0] = len + 5;               // pck[0] is checksum = len + checksum + cobs start + cobs delimit + ack/pack + id 
@@ -150,7 +149,74 @@ boolean VPort_ArduinoSerial::isOpen(void){
   return (millis() - lastRxTime < SERLINK_KEEPALIVE_RX_TIME && lastRxTime != 0);
 }
 
+// I figure this... should get a little smarter, also, at the protocol level? maybe we'll learn something useful w/ CRC on the bus... 
 void VPort_ArduinoSerial::checkOutputStates(void){
+  // if we're not tx'ing anything, check if we could be:
+  if(txState == SERLINK_TX_NONE){
+    // in priority, 
+    if(ackIsAwaiting){
+      // acks get out first, 
+      txState = SERLINK_TX_ACK;
+      lastTxTime = millis();
+    } else if (outAwaitingLen && (outAwaitingLTAT == 0 || outAwaitingLTAT + SERLINK_RETRY_TIME < micros())){
+      // then packets... the above says: if we have an out packet and (1) we haven't yet tx'd it *or* (2) we should retry it, 
+      if(outAwaitingNTA > SERLINK_RETRY_MACOUNT){
+        // bail on it, this was meant to be our last attempt, still no ack, 
+        outAwaitingLen = 0;
+      } else {
+        // setup to retransmit 
+        txState = SERLINK_TX_PCK;
+        lastTxTime = millis();
+        outAwaitingLTAT = micros();
+        outTxRp = 0;
+        outAwaitingNTA ++;
+      }
+    } else if (millis() - lastTxTime > SERLINK_KEEPALIVE_TX_TIME){
+      // then keepalives, 
+      txState = SERLINK_TX_KPA;
+      lastTxTime = millis();
+    }
+  } 
+  // then operate on this? 
+  switch(txState){
+    case SERLINK_TX_NONE:
+      break;
+    case SERLINK_TX_ACK:
+      while(stream->availableForWrite()){
+        stream->write(ackAwaiting[ackTxRp ++]);
+        if(ackTxRp >= 4){
+          ackTxRp = 0;
+          ackIsAwaiting = false;
+          txState = SERLINK_TX_NONE;
+          return;
+        }
+      }
+      break;
+    case SERLINK_TX_PCK:
+      while(stream->availableForWrite()){
+        stream->write(outAwaiting[outTxRp ++]);
+        if(outTxRp >= outAwaitingLen){
+          outTxRp = 0;
+          txState = SERLINK_TX_NONE;
+          return;
+        }
+      }
+      break;
+    case SERLINK_TX_KPA:
+      while(stream->availableForWrite()){
+        stream->write(keepAlivePacket[keepAliveTxRp ++]);
+        if(keepAliveTxRp >= 3){
+          keepAliveTxRp = 0;
+          txState = SERLINK_TX_NONE;
+          return;
+        }
+      }
+      break;
+    default:
+      break;
+  }
+  // --------------------------
+  /*
   if(ackIsAwaiting && txBufferLen == 0){   // can we ack? 
     memcpy(txBuffer, ackAwaiting, 4);
     txBufferLen = 4;
@@ -188,4 +254,5 @@ void VPort_ArduinoSerial::checkOutputStates(void){
       txBufferRp = 0;
     }
   }
+  */
 }

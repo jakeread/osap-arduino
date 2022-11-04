@@ -34,6 +34,12 @@ is; no warranty is provided, and users accept all liability.
 
 #define SERLINK_LIGHT_ON_TIME 100 // in ms 
 
+// what are we in-stream tx'ing: acks, packets, or keepalives?
+#define SERLINK_TX_NONE 0 
+#define SERLINK_TX_ACK 1
+#define SERLINK_TX_PCK 2 
+#define SERLINK_TX_KPA 3
+
 // note that we use uint8_t write ptrs / etc: and a size of 255, 
 // so we are never dealing w/ wraps etc, god bless 
 
@@ -61,25 +67,26 @@ class VPort_ArduinoSerial : public VPort {
     uint32_t lastRxTime = 0;
     uint32_t lastTxTime = 0;
     uint8_t keepAlivePacket[3] = {3, SERLINK_KEY_KEEPALIVE, 0}; // this could be in flashmem, bruh, RAM is plus-valueable 
+    uint8_t keepAliveTxRp = 0;
     // guard on double transmits 
     uint8_t lastIdRxd = 0;
     // incoming stash
     uint8_t inAwaiting[SERLINK_BUFSIZE];
     uint8_t inAwaitingId = 0;
     uint8_t inAwaitingLen = 0;
+    // -------------------------------- Outgoing Buffers 
+    uint8_t txState = SERLINK_TX_NONE;
     // outgoing ack, 
     uint8_t ackAwaiting[4];
+    uint8_t ackTxRp = 0;          // tx read-pointer for the ack, 
     boolean ackIsAwaiting = false;
     // outgoing await,
     uint8_t outAwaiting[SERLINK_BUFSIZE];
     uint8_t outAwaitingId = 1;
     uint8_t outAwaitingLen = 0;
-    uint8_t outAwaitingNTA = 0;
+    uint8_t outTxRp = 0;          // tx read-pointer for the packet 
+    uint8_t outAwaitingNTA = 0;   // number of transmit attempts 
     unsigned long outAwaitingLTAT = 0;
-    // outgoing buffer,
-    uint8_t txBuffer[SERLINK_BUFSIZE];
-    uint8_t txBufferLen = 0;
-    uint8_t txBufferRp = 0;
     // -------------------------------- Constructors 
     VPort_ArduinoSerial(Vertex* _parent, const char* _name, Uart* _uart);
     VPort_ArduinoSerial(Vertex* _parent, const char* _name, Serial_* _usbcdc);
