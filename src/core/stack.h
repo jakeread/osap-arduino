@@ -18,37 +18,39 @@ no warranty is provided, and users accept all liability.
 #include <Arduino.h>
 #include "./osap_config.h" 
 
-#define VT_STACK_ORIGIN 0 
-#define VT_STACK_DESTINATION 1 
-
+// https://stackoverflow.com/questions/1813991/c-structure-with-pointer-to-self
 class Vertex;
 
-// core routing layer chunk-of-stuff, 
-// https://stackoverflow.com/questions/1813991/c-structure-with-pointer-to-self
-typedef struct stackItem {
-  uint8_t data[VT_SLOTSIZE];          // data bytes
+// the world runs on messages, or "virtual packets"
+typedef struct VPacket {
+  // it's a data stash;
+  uint8_t data[VT_VPACKET_MAX_SIZE];          // data bytes
   uint16_t len = 0;                   // data bytes count 
+  // it has an arrival time, and a calculated deadline-for-handling
   uint32_t arrivalTime = 0;           // ms-since-system-alive, time at last ingest
-  int32_t timeToDeath = 0;            // ms of time until pckt vanishes on this hop
-  Vertex* vt;                         // vertex to whomst we belong, 
-  uint8_t od;                         // origin / destination to which we belong, 
-  uint8_t indice;                     // actual physical position in the stack 
-  uint16_t ptr = 0;                   // current data[ptr] == 88 
-  stackItem* next = nullptr;          // linked ringbuffer next 
-  stackItem* previous = nullptr;      // linked ringbuffer previous 
-} stackItem;
+  int32_t deadline = 0;               // ms of time until pckt times out on this hop 
+  // it belongs to someone, or maybe not, 
+  Vertex* vt = nullptr;               // vertex to whomst we belong, 
+  // it lies in a real list in memory, 
+  uint16_t indice;                     // actual physical position in the stack 
+  // and a virtual list... for sorting, 
+  VPacket* next = nullptr;          // linked ringbuffer next 
+  VPacket* previous = nullptr;      // linked ringbuffer previous 
+} VPacket;
 
-// stack setup / reset 
-void stackReset(Vertex* vt);
+// we can... reset this, stack of messages, 
+void stackReset(VPacket* stack, uint16_t stackLen);
 
-// stack origin side 
-boolean stackEmptySlot(Vertex* vt, uint8_t od);
-void stackLoadSlot(Vertex* vt, uint8_t od, uint8_t* data, uint16_t len);
+// and users can request open items, to write into,
+VPacket* stackRequest(Vertex* vt);
+void stackLoadPacket(VPacket* packet, uint8_t* data, uint16_t dataLen);
 
-// stack exit side 
-uint8_t stackGetItems(Vertex* vt, uint8_t od, stackItem** items, uint8_t maxItems);
-void stackClearSlot(Vertex* vt, uint8_t od, stackItem* item);
-void stackClearSlot(stackItem* item);
+// and they can relinquish those:
+void stackRelease(VPacket* packet);
 
+// and we can collect a list of 'em to handle, in order.
+// in the future, should just be able to walk the ring buffer forever 
+// though will have to guard against re-stashes 
+uint16_t stackGetPacketsToHandle(VPacket** packets, uint16_t maxPackets);
 
 #endif 

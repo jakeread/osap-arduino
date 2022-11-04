@@ -23,8 +23,8 @@ uint32_t errorCount = 0;
 uint32_t debugCount = 0;
 // strings...
 #ifndef OSAP_IS_MINI
-unsigned char latestError[VT_SLOTSIZE];
-unsigned char latestDebug[VT_SLOTSIZE];
+unsigned char latestError[VT_VPACKET_MAX_SIZE];
+unsigned char latestDebug[VT_VPACKET_MAX_SIZE];
 #else 
 unsigned char latestError[1];
 unsigned char latestDebug[1];
@@ -32,11 +32,19 @@ unsigned char latestDebug[1];
 uint16_t latestErrorLen = 0;
 uint16_t latestDebugLen = 0;
 
-OSAP::OSAP(const char* _name) : Vertex(){
+VPacket* OSAP::stack;
+uint16_t OSAP::stackLen = 0;
+
+OSAP::OSAP(const char* _name, VPacket* _stack, uint16_t _stackLen) : Vertex(){
   // see vertex.cpp -> vport constructor for notes on this 
   strcpy(name, "rt_");
-  strncat(name, _name, VT_MAXNAMELEN - 4);
-  name[VT_MAXNAMELEN - 1] = '\0';
+  strncat(name, _name, VT_NAME_MAX_LEN - 4);
+  name[VT_NAME_MAX_LEN - 1] = '\0';
+  // now we'll stash these, 
+  stack = _stack;
+  stackLen = _stackLen;
+  // aaaand reset / ready it... 
+  stackReset(stack, stackLen);
 };
 
 void OSAP::loop(void){
@@ -44,37 +52,37 @@ void OSAP::loop(void){
   osapLoop(this);
 }
 
-void OSAP::destHandler(stackItem* item, uint16_t ptr){
+void OSAP::destHandler(VPacket* pck, uint16_t ptr){
   // classic switch on 'em 
-  // item->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == ROOT_KEY, ptr + 3 = ID (if ack req.) 
+  // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == ROOT_KEY, ptr + 3 = ID (if ack req.) 
   uint16_t wptr = 0;
   uint16_t len = 0;
-  switch(item->data[ptr + 2]){
+  switch(pck->data[ptr + 2]){
     case RT_DBG_STAT:
     case RT_DBG_ERRMSG:
     case RT_DBG_DBGMSG:
       // return w/ the res key & same issuing ID 
       payload[wptr ++] = PK_DEST;
       payload[wptr ++] = RT_DBG_RES;
-      payload[wptr ++] = item->data[ptr + 3];
+      payload[wptr ++] = pck->data[ptr + 3];
       // stash high water mark, errormsg count, debugmsgcount 
       ts_writeUint32(OSAP::loopItemsHighWaterMark, payload, &wptr);
       ts_writeUint32(errorCount, payload, &wptr);
       ts_writeUint32(debugCount, payload, &wptr);
       // optionally, a string... I know we switch() then if(), it's uggo, 
-      if(item->data[ptr + 2] == RT_DBG_ERRMSG){
-        ts_writeString(latestError, latestErrorLen, payload, &wptr, VT_SLOTSIZE / 2);
-      } else if (item->data[ptr + 2] == RT_DBG_DBGMSG){
-        ts_writeString(latestDebug, latestDebugLen, payload, &wptr, VT_SLOTSIZE / 2);
+      if(pck->data[ptr + 2] == RT_DBG_ERRMSG){
+        ts_writeString(latestError, latestErrorLen, payload, &wptr, VT_VPACKET_MAX_SIZE / 2);
+      } else if (pck->data[ptr + 2] == RT_DBG_DBGMSG){
+        ts_writeString(latestDebug, latestDebugLen, payload, &wptr, VT_VPACKET_MAX_SIZE / 2);
       }
       // that's the payload, I figure, 
-      len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
-      stackClearSlot(item);
-      stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+      len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+      // and it's a replacement again, 
+      stackLoadPacket(pck, datagram, len);
       break;
     default:
-      OSAP_ERROR("unrecognized key to root node " + String(item->data[ptr + 2]));
-      stackClearSlot(item);
+      OSAP_ERROR("unrecognized key to root node " + String(pck->data[ptr + 2]));
+      stackRelease(pck);
       break;
   }
 }
@@ -111,14 +119,14 @@ void debugPrint(String msg){
 
 void OSAP::error(String msg, OSAPErrorLevels lvl){
   const char* str = msg.c_str();
-  msg.getBytes(latestError, VT_SLOTSIZE);
+  msg.getBytes(latestError, VT_VPACKET_MAX_SIZE);
   latestErrorLen = msg.length();
   debugPrint(msg);
   errorCount ++;
 }
 
 void OSAP::debug(String msg, OSAPDebugStreams stream){
-  msg.getBytes(latestDebug, VT_SLOTSIZE);
+  msg.getBytes(latestDebug, VT_VPACKET_MAX_SIZE);
   latestDebugLen = msg.length();
   debugPrint(msg);
   debugCount ++;

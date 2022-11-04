@@ -28,8 +28,13 @@ enum OSAPDebugStreams { DBG_DFLT, LOOP };
 class OSAP : public Vertex {
   public: 
     void loop(void) override;
-    void destHandler(stackItem* item, uint16_t ptr);
-    OSAP(const char* _name);// : Vertex(_name);
+    void destHandler(VPacket* pck, uint16_t ptr);
+    // das root 
+    OSAP(const char* _name, VPacket* _stack, uint16_t _stackLen);// : Vertex(_name);
+    // hangs on 2 the stack of msgs, 
+    static VPacket* stack;
+    static uint16_t stackLen;
+    // does some debuggen 
     #ifndef OSAP_IS_MINI
     static void error(String msg, OSAPErrorLevels lvl = MINOR );
     static void debug(String msg, OSAPDebugStreams stream = DBG_DFLT );

@@ -16,16 +16,13 @@ no warranty is provided, and users accept all liability.
 #define OSAP_CONFIG_H_
 
 // size of vertex stacks, lenght, then count,
-#define VT_SLOTSIZE 128
-#define VT_STACKSIZE 2  // must be >= 2 for ringbuffer operation 
-#define VT_MAXCHILDREN 16
-#define VT_MAXITEMSPERTURN 8
-#define VT_MAXNAMELEN 31
-
-// max # of endpoints that could be spawned here,
-#define MAX_CONTEXT_ENDPOINTS 16
+#define VT_VPACKET_MAX_SIZE 128
+#define VT_NAME_MAX_LEN 31
+#define VT_MAX_CHILDREN 16
 
 // count of routes each endpoint can have, 
+// these, equally, should be allocated in-total, and assigned 
+// to individual endpoints, right ? 
 #define ENDPOINT_MAX_ROUTES 2
 #define ENDPOINT_ROUTE_MAX_LEN 64
 

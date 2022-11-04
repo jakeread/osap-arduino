@@ -15,6 +15,8 @@ no warranty is provided, and users accept all liability.
 #include "vt_endpoint.h"
 #include "osap.h"
 
+#ifndef OSAP_IS_MINI
+
 // -------------------------------------------------------- Constructors 
 
 // route constructor 
@@ -39,8 +41,8 @@ Endpoint::Endpoint(
 ) : Vertex(_parent) {
   // see vertex.cpp -> vport constructor for notes on this 
   strcpy(name, "ep_");
-  strncat(name, _name, VT_MAXNAMELEN - 4);
-  name[VT_MAXNAMELEN - 1] = '\0';
+  strncat(name, _name, VT_NAME_MAX_LEN - 4);
+  name[VT_NAME_MAX_LEN - 1] = '\0';
   // type, 
 	type = VT_TYPE_ENDPOINT;
   // set callbacks,
@@ -62,7 +64,7 @@ boolean beforeQueryDefault(void){
 
 void Endpoint::write(uint8_t* _data, uint16_t len){
   // copy data in,
-  if(len > VT_SLOTSIZE) return; // no lol 
+  if(len > VT_VPACKET_MAX_SIZE) return; // no lol 
   memcpy(data, _data, len);
   dataLen = len;
   // set route freshness 
@@ -147,7 +149,7 @@ void Endpoint::loop(void){
   for(r = 0; r < numTxRoutes; r ++){
     if(stackEmptySlot(this, VT_STACK_ORIGIN)){
       // make sure we'll have enough space...
-      if(dataLen + routeTxList[r]->route->pathLen + 3 >= VT_SLOTSIZE){
+      if(dataLen + routeTxList[r]->route->pathLen + 3 >= VT_VPACKET_MAX_SIZE){
         OSAP_ERROR("attempting to write oversized datagram at " + name);
         routeTxList[r]->state = EP_TX_IDLE;
         continue;
@@ -167,7 +169,7 @@ void Endpoint::loop(void){
       memcpy(&(payload[wptr]), data, dataLen);
       wptr += dataLen;
       // write the packet, 
-      uint16_t len = writeDatagram(datagram, VT_SLOTSIZE, routeTxList[r]->route, payload, wptr);
+      uint16_t len = writeDatagram(datagram, VT_VPACKET_MAX_SIZE, routeTxList[r]->route, payload, wptr);
       // tx time is now, and state is awaiting ack, 
       routeTxList[r]->lastTxTime = now;
       routeTxList[r]->state = EP_TX_AWAITING_ACK;
@@ -220,7 +222,7 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
               payload[0] = PK_DEST;
               payload[1] = EP_SS_ACK;
               payload[2] = id;
-              uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, 3);
+              uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, 3);
               stackClearSlot(item);
               stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
               break;
@@ -236,7 +238,7 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
         payload[1] = EP_QUERY_RESP;
         payload[2] = item->data[ptr + 3];
         memcpy(&(payload[3]), data, dataLen);
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, dataLen + 3);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, dataLen + 3);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
       }
@@ -285,7 +287,7 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           payload[wptr ++] = 0; // no-route-here, 
         }
         // clear request, write reply in place, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
       }
@@ -317,7 +319,7 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           payload[4] = 0;
         }
         // either case, write the reply, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, 5);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, 5);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
       }
@@ -349,7 +351,7 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           payload[3] = 0;
         }
         // either case, write reply 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, 4);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, 4);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
       }
@@ -360,3 +362,5 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
       break;
   } // end switch... 
 }
+
+#endif 

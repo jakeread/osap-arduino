@@ -19,27 +19,24 @@ no warranty is provided, and users accept all liability.
 
 // ---------------------------------------------- Temporary Stash 
 
-uint8_t Vertex::payload[VT_SLOTSIZE];
-uint8_t Vertex::datagram[VT_SLOTSIZE];
+uint8_t Vertex::payload[VT_VPACKET_MAX_SIZE];
+uint8_t Vertex::datagram[VT_VPACKET_MAX_SIZE];
 
 // ---------------------------------------------- Vertex Constructor and Defaults 
 
-Vertex::Vertex( 
-  Vertex* _parent, const char* _name
-){
+Vertex::Vertex(Vertex* _parent, const char* _name){
   // copy name in and terminate if too long, 
-  strncpy(name, _name, VT_MAXNAMELEN);
-  if(strlen(_name) > VT_MAXNAMELEN){
-    name[VT_MAXNAMELEN - 1] = '\0';
+  strncpy(name, _name, VT_NAME_MAX_LEN);
+  if(strlen(_name) > VT_NAME_MAX_LEN){
+    name[VT_NAME_MAX_LEN - 1] = '\0';
   }
-  stackReset(this);
   // insert self to osap net,
   if(_parent == nullptr){
     type = VT_TYPE_ROOT;
     indice = 0;
   } else {
-    if (_parent->numChildren >= VT_MAXCHILDREN) {
-      OSAP_ERROR_HALTING("trying to nest a vertex under " + _parent->name + " but we have reached VT_MAXCHILDREN limit");
+    if (_parent->numChildren >= VT_MAX_CHILDREN) {
+      OSAP_ERROR_HALTING("trying to nest a vertex under " + _parent->name + " but we have reached VT_MAX_CHILDREN limit");
     } else {
       this->indice = _parent->numChildren;
       this->parent = _parent;
@@ -52,35 +49,34 @@ void Vertex::loop(void){
   // default loop is noop 
 }
 
-void Vertex::destHandler(stackItem* item, uint16_t ptr){
+void Vertex::destHandler(VPacket* pck, uint16_t ptr){
   // generic handler...
   OSAP_DEBUG("generic destHandler at " + name);
-  stackClearSlot(item);
+  stackRelease(pck);
 }
 
-void Vertex::pingRequestHandler(stackItem* item, uint16_t ptr){
+void Vertex::pingRequestHandler(VPacket* pck, uint16_t ptr){
   // key & id, 
   payload[0] = PK_PINGRES;
-  payload[1] = item->data[ptr + 2];
+  payload[1] = pck->data[ptr + 2];
   // write a new gram, 
-  uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, 2);
-  // clear previous, 
-  stackClearSlot(item);
-  // load next... there will be one empty, as this has just arrived here... & we just wiped it 
-  stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+  uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, 2);
+  // this is a replacement, so, actually the same as loading,
+  // i.e. we don't change ownership, nice: 
+  stackLoadPacket(pck, datagram, len);
 }
 
-void Vertex::scopeRequestHandler(stackItem* item, uint16_t ptr){
+void Vertex::scopeRequestHandler(VPacket* pck, uint16_t ptr){
   // key & id, 
   payload[0] = PK_SCOPERES;
-  payload[1] = item->data[ptr + 2];
+  payload[1] = pck->data[ptr + 2];
   // next items write starting here, 
   uint16_t wptr = 2;
   // scope time-tag, 
   ts_writeUint32(scopeTimeTag, payload, &wptr);
   // and read in the previous scope (this is traversal state required to delineate loops in the graph) 
   uint16_t rptr = ptr + 3;
-  ts_readUint32(&scopeTimeTag, item->data, &rptr);
+  ts_readUint32(&scopeTimeTag, pck->data, &rptr);
   // write the vertex type,  
   payload[wptr ++] = type;
   // vport / vbus link states, 
@@ -93,7 +89,7 @@ void Vertex::scopeRequestHandler(stackItem* item, uint16_t ptr){
     ts_writeUint16(vbus->addrSpaceSize, payload, &wptr);
     ts_writeUint16(vbus->ownRxAddr, payload, &wptr);
     // then *so long a we're not overwriting*, we stuff link-state bytes, 
-    while(wptr + 8 + strlen(name) <= VT_SLOTSIZE){
+    while(wptr + 8 + strlen(name) <= VT_VPACKET_MAX_SIZE){
       payload[wptr] = 0;
       for(uint8_t b = 0; b < 8; b ++){
         payload[wptr] |= (vbus->isOpen(addr) ? 1 : 0) << b;
@@ -116,9 +112,9 @@ void Vertex::scopeRequestHandler(stackItem* item, uint16_t ptr){
   // finally, our string name:
   ts_writeString(name, payload, &wptr);
   // and roll that back up, rm old, and ship it, 
-  uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
-  stackClearSlot(item);
-  stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+  uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+  // replace the previous packet, which we handled, with its ack:
+  stackLoadPacket(pck, datagram, len);
 }
 
 // ---------------------------------------------- VPort Constructor and Defaults 
@@ -130,13 +126,15 @@ VPort::VPort(
   strcpy(name, "vp_");
   // we could check-and-swap, or just use this here... copying in no-more than avail. space
   // https://cplusplus.com/reference/cstring/strncat/ 
-  strncat(name, _name, VT_MAXNAMELEN - 4);
+  strncat(name, _name, VT_NAME_MAX_LEN - 4);
   // we've left room for it above, let's ensure there's a null termination: 
   // and in cases where src is > num, no null terminator is implicitly applied, so we do it:
-  name[VT_MAXNAMELEN - 1] = '\0';
+  name[VT_NAME_MAX_LEN - 1] = '\0';
   // set type, reacharound, & callbacks 
   type = VT_TYPE_VPORT;
   vport = this; 
+  // vport / vbus really needs some extra... 
+  maxPacketHold = 3;
 }
 
 // ---------------------------------------------- VBus Constructor and Defaults 
@@ -146,11 +144,13 @@ VBus::VBus(
 ) : Vertex(_parent) {
   // see vertex.cpp -> vport constructor for notes on this 
   strcpy(name, "vb_");
-  strncat(name, _name, VT_MAXNAMELEN - 4);
-  name[VT_MAXNAMELEN - 1] = '\0';
+  strncat(name, _name, VT_NAME_MAX_LEN - 4);
+  name[VT_NAME_MAX_LEN - 1] = '\0';
   // set type, reacharound, & callbacks 
   type = VT_TYPE_VBUS;
   vbus = this;
+  // vport / vbus really needs some extra... 
+  maxPacketHold = 3;
   // these should all init to nullptr, 
   for(uint8_t ch = 0; ch < VBUS_MAX_BROADCAST_CHANNELS; ch ++){
     broadcastChannels[ch] = nullptr;
@@ -158,6 +158,7 @@ VBus::VBus(
 }
 
 void VBus::injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastChannel){
+  #ifndef OSAP_IS_MINI
   // ok so first we want to see if we have anything sub'd to this channel, so
   if(broadcastChannels[broadcastChannel] != nullptr){
     // we have a route, so we want to load this data *as we inject some new path segments* 
@@ -172,7 +173,7 @@ void VBus::injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastC
     // ttl, segsize, <prev_instruct>, <bbrd_txAddr>, PTR, <ch_route>, <payload>
     // shouldn't actually be too difficult, eh?
     // we do need to guard on lengths, 
-    if(len + route->pathLen > VT_SLOTSIZE){ OSAP_ERROR("datagram + channel route is too large"); return; }
+    if(len + route->pathLen > VT_VPACKET_MAX_SIZE){ OSAP_ERROR("datagram + channel route is too large"); return; }
     // copy up to PTR: pck[ptr] == PK_PTR, so we want to *include* this byte, having len ptr + 1, 
     memcpy(datagram, data, ptr + 1);
     // copy in route, but recall that as initialized, route->path[0] == PK_PTR, we don't want to double that up, 
@@ -183,6 +184,7 @@ void VBus::injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastC
     stackLoadSlot(this, VT_STACK_ORIGIN, datagram, len + route->pathLen - 1);
     // aye that's it innit? 
   }
+  #endif 
 }
 
 void VBus::setBroadcastChannel(uint8_t channel, Route* route){
@@ -191,9 +193,10 @@ void VBus::setBroadcastChannel(uint8_t channel, Route* route){
   broadcastChannels[channel] = route;
 }
 
-void VBus::destHandler(stackItem* item, uint16_t ptr){
+void VBus::destHandler(VPacket* pck, uint16_t ptr){
   // item->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == the key we're switching on...
-  switch(item->data[ptr + 2]){
+  switch(pck->data[ptr + 2]){
+    #ifndef OSAP_IS_MINI 
     case VBUS_BROADCAST_MAP_REQ:
       // mvc request a map of our active broadcast channels, this is akin to bus link-state-scope packet
       {
@@ -208,7 +211,7 @@ void VBus::destHandler(stackItem* item, uint16_t ptr){
         // then *so long a we're not overwriting*, we stuff link-state bytes, 
         // idk, 32 is arbitrary, we have to account for return-route length properly... 
         uint16_t channel = 0;
-        while(wptr + 32 <= VT_SLOTSIZE){
+        while(wptr + 32 <= VT_VPACKET_MAX_SIZE){
           payload[wptr] = 0;
           for(uint8_t b = 0; b < 8; b ++){
             payload[wptr] |= (broadcastChannels[channel] == nullptr ? 0 : 1) << b;
@@ -220,7 +223,7 @@ void VBus::destHandler(stackItem* item, uint16_t ptr){
         end:
         wptr ++; // += 1 more, so we write into next, 
         // we're ready to write the reply back, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
         break;
@@ -248,7 +251,7 @@ void VBus::destHandler(stackItem* item, uint16_t ptr){
           payload[wptr ++] = 0;
         }
         // write reply, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
         break;
@@ -281,7 +284,7 @@ void VBus::destHandler(stackItem* item, uint16_t ptr){
           setBroadcastChannel(ch, new Route(path, pathLen, ttl, segSize));
         }
         // in any case, write the reply, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
         break;
@@ -313,14 +316,15 @@ void VBus::destHandler(stackItem* item, uint16_t ptr){
           payload[wptr ++] = 0;
         }
         // can send now, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
+        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
         break;
       }
+      #endif 
     default:
       OSAP_ERROR("vbus rx msg w/ unrecognized vbus key " + String(item->data[ptr + 2]) + " bailing");
-      stackClearSlot(item);
+      stackRelease(pck);
       break;
   } 
 }

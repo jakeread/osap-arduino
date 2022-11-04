@@ -90,16 +90,25 @@ void VPort_ArduinoSerial::loop(void){
   } // end while-receive 
 
   // check insertion & genny the ack if we can 
-  if(inAwaitingLen && stackEmptySlot(this, VT_STACK_ORIGIN) && !ackIsAwaiting){
-    stackLoadSlot(this, VT_STACK_ORIGIN, inAwaiting, inAwaitingLen);
-    ackIsAwaiting = true;
-    ackAwaiting[0] = 4;                 // checksum still, innit 
-    ackAwaiting[1] = SERLINK_KEY_ACK;   // it's an ack bruv 
-    ackAwaiting[2] = inAwaitingId;      // which pck r we akkin m8 
-    ackAwaiting[3] = 0;                 // delimiter 
-    inAwaitingLen = 0;
+  if(inAwaitingLen && !ackIsAwaiting){
+    digitalWrite(2, HIGH);
+    // can we get a packet to write into?
+    VPacket* pck = stackRequest(this);
+    // with this new thing... we could get the packet *ahead of time* 
+    // to write-into in this code, also saving memory... 
+    // for now I'll just try it with a kind of replacement, more copying... 
+    if(pck != nullptr){
+      // digitalWrite(2, HIGH);
+      stackLoadPacket(pck, inAwaiting, inAwaitingLen);
+      // we've loaded it, can ack that: 
+      ackIsAwaiting = true;
+      ackAwaiting[0] = 4;                 // checksum still, innit 
+      ackAwaiting[1] = SERLINK_KEY_ACK;   // it's an ack bruv 
+      ackAwaiting[2] = inAwaitingId;      // which pck r we akkin m8 
+      ackAwaiting[3] = 0;                 // delimiter 
+      inAwaitingLen = 0;
+    } // else we are awaiting & will check back 
   }
-
   // check & execute actual tx 
   checkOutputStates();
 }
