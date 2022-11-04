@@ -15,10 +15,6 @@ no warranty is provided, and users accept all liability.
 #ifndef VT_ENDPOINT_H_
 #define VT_ENDPOINT_H_
 
-#include "osap_config.h"
-
-#ifndef OSAP_IS_MINI
-
 #include "core/vertex.h"
 #include "core/packets.h"
 
@@ -61,7 +57,7 @@ class Endpoint : public Vertex {
     boolean (*beforeQuery_cb)(void) = beforeQueryDefault;
     // we override vertex loop, 
     void loop(void) override;
-    void destHandler(stackItem* item, uint16_t ptr) override;
+    void destHandler(VPacket* pck, uint16_t ptr) override;
     // methods,
     void write(uint8_t* _data, uint16_t len);
     // ... for boolean types, do:
@@ -107,5 +103,4 @@ class Endpoint : public Vertex {
     ){};
 };
 
-#endif 
 #endif 
