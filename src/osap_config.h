@@ -23,8 +23,9 @@ no warranty is provided, and users accept all liability.
 // count of routes each endpoint can have, 
 // these, equally, should be allocated in-total, and assigned 
 // to individual endpoints, right ? 
+#define ENDPOINT_MAX_DATA_SIZE 32 
 #define ENDPOINT_MAX_ROUTES 2
-#define ENDPOINT_ROUTE_MAX_LEN 64
+#define ENDPOINT_ROUTE_MAX_LEN 48
 
 // count of broadcast channels width, 
 #define VBUS_MAX_BROADCAST_CHANNELS 64 

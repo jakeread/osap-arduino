@@ -18,7 +18,7 @@ is; no warranty is provided, and users accept all liability.
 #include <Arduino.h>
 #include "core/vertex.h"
 
-// buffer is max 256 long for that sweet sweet uint8_t alignment 
+// buffer is max 255 long for that sweet sweet uint8_t alignment 
 #define SERLINK_BUFSIZE 255
 // -1 checksum, -1 packet id, -1 packet type, -2 cobs
 #define SERLINK_SEGSIZE SERLINK_BUFSIZE - 5

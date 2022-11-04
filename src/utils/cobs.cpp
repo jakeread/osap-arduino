@@ -21,6 +21,7 @@ no warranty is provided, and users accept all liability.
 	@return Encoded buffer length in bytes
 	@note doesn't write stop delimiter 
 */
+
 size_t cobsEncode(const void *data, size_t length, uint8_t *buffer){
 
 	uint8_t *encode = buffer; // Encoded byte pointer
@@ -48,6 +49,7 @@ size_t cobsEncode(const void *data, size_t length, uint8_t *buffer){
 	@return Number of bytes successfully decoded
 	@note Stops decoding if delimiter byte is found
 */
+
 size_t cobsDecode(const uint8_t *buffer, size_t length, void *data){
 
 	const uint8_t *byte = buffer; // Encoded input byte pointer

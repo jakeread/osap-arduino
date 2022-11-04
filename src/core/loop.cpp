@@ -57,6 +57,7 @@ void osapLoop(Vertex* root){
   }
 }
 
+// 344 bytes 
 void osapPacketHandler(VPacket* pck){
   // get a ptr for the item, 
   uint16_t ptr = 0;

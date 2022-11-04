@@ -66,6 +66,7 @@ void Vertex::pingRequestHandler(VPacket* pck, uint16_t ptr){
   stackLoadPacket(pck, datagram, len);
 }
 
+// 344 bytes 
 void Vertex::scopeRequestHandler(VPacket* pck, uint16_t ptr){
   // key & id, 
   payload[0] = PK_SCOPERES;

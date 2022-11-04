@@ -62,16 +62,23 @@ boolean beforeQueryDefault(void){
 
 void Endpoint::write(uint8_t* _data, uint16_t len){
   // copy data in,
-  if(len > VT_VPACKET_MAX_SIZE) return; // no lol 
+  if(len > ENDPOINT_MAX_DATA_SIZE){
+    OSAP_ERROR("attempt to write too-large data to endpoint");
+    return; // no lol 
+  }
   memcpy(data, _data, len);
   dataLen = len;
   // set route freshness 
   for(uint8_t r = 0; r < numRoutes; r ++){
+    #ifdef OSAP_IS_MINI
+    routes[r]->state = EP_TX_FRESH;
+    #else 
     if(routes[r]->state == EP_TX_AWAITING_ACK){
       routes[r]->state = EP_TX_AWAITING_AND_FRESH;
     } else {
       routes[r]->state = EP_TX_FRESH;
     }
+    #endif 
   }
 }
 
@@ -90,6 +97,10 @@ uint8_t Endpoint::addRoute(Route* _route, uint8_t _mode, uint32_t _timeoutLength
     OSAP_ERROR("route add is oob"); 
     return 0;
 	}
+  // no acked msgs for tiny friends 
+  #ifdef OSAP_IS_MINI
+  _mode = EP_ROUTEMODE_ACKLESS;
+  #endif 
   // build, stash, increment 
   uint8_t indice = numRoutes;
   routes[numRoutes ++] = new EndpointRoute(_route, _mode, _timeoutLength);
@@ -123,6 +134,8 @@ void Endpoint::loop(void){
       case EP_TX_FRESH:
         routeTxList[routeTxListLen ++] = routes[r];
         break;
+      // don't compile ack-related kit if we are trying to be tiny 
+      #ifndef OSAP_IS_MINI
       case EP_TX_AWAITING_ACK:
 				// check timeout & transition to idle state on ack-timeout, 
         if(routes[r]->lastTxTime + routes[r]->timeoutLength > now){
@@ -134,6 +147,7 @@ void Endpoint::loop(void){
         if(routes[r]->lastTxTime + routes[r]->timeoutLength > now){
           routes[r]->state = EP_TX_FRESH;
         }
+      #endif 
       default:
         // noop for IDLE / otherwise...
         break;
@@ -160,10 +174,12 @@ void Endpoint::loop(void){
       if(routeTxList[r]->ackMode == EP_ROUTEMODE_ACKLESS){
         payload[wptr ++] = EP_SS_ACKLESS;
       } else {
+        #ifndef OSAP_IS_MINI
         payload[wptr ++] = EP_SS_ACKED;
         payload[wptr ++] = nextAckID;
         routeTxList[r]->ackId = nextAckID;
         nextAckID ++;
+        #endif 
       } 
       // write data into the payload, 
       memcpy(&(payload[wptr]), data, dataLen);
@@ -185,6 +201,7 @@ void Endpoint::loop(void){
 
 // -------------------------------------------------------- Destination Handler  
 
+// this is a big flash memory offender, at 780 bytes 
 void Endpoint::destHandler(VPacket* pck, uint16_t ptr){
   // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == EP_KEY, ptr + 3 = ID (if ack req.) 
   switch(pck->data[ptr + 2]){
@@ -243,6 +260,8 @@ void Endpoint::destHandler(VPacket* pck, uint16_t ptr){
         stackLoadPacket(pck, datagram, len);
       }
       break;
+    #ifndef OSAP_IS_MINI
+    // for example, just the below statement is 68 bytes... seems wild 
     case EP_SS_ACK:
       // acks to us, 
       for(uint8_t r = 0; r < numRoutes; r ++){
@@ -265,6 +284,7 @@ void Endpoint::destHandler(VPacket* pck, uint16_t ptr){
       ackEnd:
       stackRelease(pck);
       break;
+    #endif 
     case EP_ROUTE_QUERY_REQ:
       // MVC request for a route of ours, 
       {

@@ -50,7 +50,7 @@ class Endpoint : public Vertex {
     // local data store & length, 
     // we *should* have users pass us ptrs to these, and... 
     // tell us when they are new ? or something ? 
-    uint8_t data[VT_VPACKET_MAX_SIZE];
+    uint8_t data[ENDPOINT_MAX_DATA_SIZE];
     uint16_t dataLen = 0; 
     // callbacks: on new data & before a query is written out 
     EP_ONDATA_RESPONSES (*onData_cb)(uint8_t* data, uint16_t len) = onDataDefault;

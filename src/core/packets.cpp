@@ -25,6 +25,7 @@ uint16_t readArg(uint8_t* buf, uint16_t ptr){
   return ((buf[ptr] & 0b00001111) << 8) | buf[ptr + 1];
 }
 
+// 60 bytes only 
 boolean findPtr(uint8_t* pck, uint16_t* pt){
   // 1st instruction is always at pck[4], pck[0][1] == ttl, pck[2][3] == segSize 
   uint16_t ptr = 4;
@@ -51,6 +52,7 @@ boolean findPtr(uint8_t* pck, uint16_t* pt){
   return false;
 }
 
+// this fn is a big FLASH offender (276 bytes)
 boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
   // if the ptr we were handed isn't in the right spot, try to find it... 
   if(pck[ptr] != PK_PTR){
@@ -130,6 +132,7 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
   return true; 
 }
 
+// 106 bytes 
 uint16_t writeDatagram(uint8_t* gram, uint16_t maxGramLength, Route* route, uint8_t* payload, uint16_t payloadLen){
   uint16_t wptr = 0;
   ts_writeUint16(route->ttl, gram, &wptr);
@@ -146,6 +149,7 @@ uint16_t writeDatagram(uint8_t* gram, uint16_t maxGramLength, Route* route, uint
 }
 
 // original gram, payload, len, 
+// 182 bytes 
 uint16_t writeReply(uint8_t* ogGram, uint8_t* gram, uint16_t maxGramLength, uint8_t* payload, uint16_t payloadLen){
   // 1st up, we can straight copy the 1st 4 bytes, 
   memcpy(gram, ogGram, 4);

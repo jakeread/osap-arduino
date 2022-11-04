@@ -48,6 +48,15 @@ void VPort_ArduinoSerial::begin(void){
 // structured like:
 // checksum | pck/ack key | pck id | cobs encoded data | 0 
 
+#warning TODO here 
+/*
+OK I think this is the plan:
+- we can rm the rxBuffer & inAwaiting double-up by guarding the while(stream->available()) w/ while(stream->available() && rxBufferLen == 0)
+  - then cobs-decode it straight into an OSAP packet, ok 
+- then we can rm the txBuffer and outAwaiting double-up by guarding cts() with, also, (txBufferLen == 0), meaning we won't ever 
+  - have OSAP write into it w/o our consent... then this is easy, and it saves... two memcpy, on every packet that goes thru, 
+  - should count for something, non ? 
+*/
 void VPort_ArduinoSerial::loop(void){
   // byte injestion: think of this like the rx interrupt stage, 
   while(stream->available()){
@@ -91,7 +100,6 @@ void VPort_ArduinoSerial::loop(void){
 
   // check insertion & genny the ack if we can 
   if(inAwaitingLen && !ackIsAwaiting){
-    digitalWrite(2, HIGH);
     // can we get a packet to write into?
     VPacket* pck = stackRequest(this);
     // with this new thing... we could get the packet *ahead of time* 
