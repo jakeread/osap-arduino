@@ -50,23 +50,20 @@ void VPort_ArduinoSerial::begin(void){
 
 #warning TODO here 
 /*
-OK I think this is the plan:
-- we can rm the rxBuffer & inAwaiting double-up by guarding the while(stream->available()) w/ while(stream->available() && rxBufferLen == 0)
-  - then cobs-decode it straight into an OSAP packet, ok 
-- then we can rm the txBuffer and outAwaiting double-up by guarding cts() with, also, (txBufferLen == 0), meaning we won't ever 
-  - have OSAP write into it w/o our consent... then this is easy, and it saves... two memcpy, on every packet that goes thru, 
-  - should count for something, non ? 
+OK this ... almost works: it does, but just once, then some state (probably) doesn't un-latch, and it borks 
+I'm also not 100% on the new stackRequest, for example, so it would be worth checking through that sequence on the 
+second (failing) ping: do we just fail to exit, or what? 
 */
 void VPort_ArduinoSerial::loop(void){
   // byte injestion: think of this like the rx interrupt stage, 
-  while(stream->available()){
+  while(stream->available() && rxBufferLen == 0){
     // read byte into the current stub, 
     rxBuffer[rxBufferWp ++] = stream->read();
     if(rxBuffer[rxBufferWp - 1] == 0){
       // always reset keepalive last-rx time, 
       lastRxTime = millis();
       // 1st, we checksum:
-      if(rxBuffer[0] != rxBufferWp){ 
+      if(rxBuffer[0] != rxBufferWp){
         OSAP_ERROR("serLink bad checksum, cs: " + String(rxBuffer[0]) + " wp: " + String(rxBufferWp));
       } else {
         // acks, packs, or broken things 
@@ -74,8 +71,8 @@ void VPort_ArduinoSerial::loop(void){
           case SERLINK_KEY_PCK:
             // dirty guard for retransmitted packets, 
             if(rxBuffer[2] != lastIdRxd){
-              inAwaitingId = rxBuffer[2]; // stash ID 
-              inAwaitingLen = cobsDecode(&(rxBuffer[3]), rxBufferWp - 2, inAwaiting); // fill inAwaiting 
+              rxBufferId = rxBuffer[2]; // stash ID 
+              rxBufferLen = rxBufferWp;
             } else {
               OSAP_ERROR("serLink double rx");
             }
@@ -98,25 +95,30 @@ void VPort_ArduinoSerial::loop(void){
     }
   } // end while-receive 
 
-  // check insertion & genny the ack if we can 
-  if(inAwaitingLen && !ackIsAwaiting){
-    // can we get a packet to write into?
+  // now check if we can get an osap packet to write into... 
+  // would be nice to cobs-in-place, non? https://github.com/charlesnicholson/nanocobs 
+  // performance improvement also might mean... different algos for USB-serial and for Serial-Serial, 
+  // though sharing them would mean compatibility across i.e. usb-to-uart devices, IDK man 
+  if(rxBufferLen && !ackIsAwaiting){
     VPacket* pck = stackRequest(this);
-    // with this new thing... we could get the packet *ahead of time* 
-    // to write-into in this code, also saving memory... 
-    // for now I'll just try it with a kind of replacement, more copying... 
     if(pck != nullptr){
-      // digitalWrite(2, HIGH);
-      stackLoadPacket(pck, inAwaiting, inAwaitingLen);
-      // we've loaded it, can ack that: 
+      // we can decode COBS straight in... i.e. if we have smaller vertex sizes 
+      // than the default serial-packet length (255, bc uint8), we could be doing some 
+      // bigly unsafe-unpacks here (!) 
+      #warning no length guard here !!
+      pck->len = cobsDecode(&(rxBuffer[3]), rxBufferLen - 2, pck->data); // fill that packet up, 
+      pck->arrivalTime = millis();
+      // and can set the ack, 
       ackIsAwaiting = true;
       ackAwaiting[0] = 4;                 // checksum still, innit 
       ackAwaiting[1] = SERLINK_KEY_ACK;   // it's an ack bruv 
-      ackAwaiting[2] = inAwaitingId;      // which pck r we akkin m8 
+      ackAwaiting[2] = rxBufferId;      // which pck r we akkin m8 
       ackAwaiting[3] = 0;                 // delimiter 
-      inAwaitingLen = 0;
-    } // else we are awaiting & will check back 
+      // we've cleared it now, can resume-rx'ing 
+      rxBufferLen = 0;
+    } // if-no-packet for us, we are awaiting, 
   }
+
   // check & execute actual tx 
   checkOutputStates();
 }
@@ -216,6 +218,7 @@ void VPort_ArduinoSerial::checkOutputStates(void){
       break;
   }
   // --------------------------
+  // below was the old structure, which used more memory and... was probably slower, with that memcpy 
   /*
   if(ackIsAwaiting && txBufferLen == 0){   // can we ack? 
     memcpy(txBuffer, ackAwaiting, 4);

@@ -63,6 +63,8 @@ class VPort_ArduinoSerial : public VPort {
     // incoming, always kept clear to receive: 
     uint8_t rxBuffer[SERLINK_BUFSIZE];
     uint8_t rxBufferWp = 0;
+    uint8_t rxBufferLen = 0;
+    uint8_t rxBufferId = 0;
     // keepalive state, 
     uint32_t lastRxTime = 0;
     uint32_t lastTxTime = 0;
@@ -70,10 +72,6 @@ class VPort_ArduinoSerial : public VPort {
     uint8_t keepAliveTxRp = 0;
     // guard on double transmits 
     uint8_t lastIdRxd = 0;
-    // incoming stash
-    uint8_t inAwaiting[SERLINK_BUFSIZE];
-    uint8_t inAwaitingId = 0;
-    uint8_t inAwaitingLen = 0;
     // -------------------------------- Outgoing Buffers 
     uint8_t txState = SERLINK_TX_NONE;
     // outgoing ack, 
