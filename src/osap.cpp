@@ -100,7 +100,7 @@ void OSAP::destHandler(stackItem* item, uint16_t ptr){
         // we need to get these, I guess as a char-array anyways, 
         // there needs to be a "changeName" function (?) etc, 
         payload[wptr ++] = 1; // can return '0' if not-d21 / also should do per-micro compile, 
-        #warning shouldn't copile flash stuff if we have a non-samd-supported chip (!)  
+        #warning should not copile flash stuff if we have a non-samd-supported chip (!)  
         len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
         stackClearSlot(item);
         stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
