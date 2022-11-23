@@ -189,7 +189,8 @@ String ts_readString(unsigned char* buf, uint16_t* ptr){
   for(uint16_t c = 0; c < len; c ++){
     cStr[c] = buf[(*ptr) + c];
   }
-  // cStr[len] = '\0';
+  // terminate it... 
+  cStr[len] = '\0';
   // and we can constructor that...
   return String(cStr);
 }

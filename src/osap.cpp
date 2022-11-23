@@ -94,6 +94,13 @@ void OSAP::destHandler(stackItem* item, uint16_t ptr){
         int16_t storedAddress = 0;
         int signature = 0;
         strcpy(rootName, incoming.c_str());
+        // here's a hack: for some reason, c-str methods here are +1 char too long 
+        // so I want to truncate-by-one, before doing the copy-in-to-eeprom,
+        // rootName[strlen(rootName) - 1] = 0;
+        // or perhaps I was straight up writing strings improperly ? 
+        // I should resolve that... by hopping onto the opap-mini branch 
+        // and fixing / finishing it, where we use c-strings exclusively 
+        // and not these String PITAs
         EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
         EEPROM.put(storedAddress + sizeof(signature), rootName);
         EEPROM.commit();
