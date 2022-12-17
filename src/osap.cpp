@@ -22,13 +22,8 @@ uint32_t OSAP::loopItemsHighWaterMark = 0;
 uint32_t errorCount = 0;
 uint32_t debugCount = 0;
 // strings...
-#ifndef OSAP_IS_MINI
 unsigned char latestError[VT_VPACKET_MAX_SIZE];
 unsigned char latestDebug[VT_VPACKET_MAX_SIZE];
-#else 
-unsigned char latestError[1];
-unsigned char latestDebug[1];
-#endif 
 uint16_t latestErrorLen = 0;
 uint16_t latestDebugLen = 0;
 
@@ -43,9 +38,14 @@ OSAP::OSAP(const char* _name, VPacket* _stack, uint16_t _stackLen) : Vertex(){
   // now we'll stash these, 
   stack = _stack;
   stackLen = _stackLen;
-  // aaaand reset / ready it... 
+  // reset / ready the stacko, 
   stackReset(stack, stackLen);
 };
+
+// this is where we'll stick the unique-name id'ing kit, 
+void OSAP::init(void){
+
+}
 
 void OSAP::loop(void){
   // this is the root, so we kick all of the internal net operation from here 
@@ -87,7 +87,6 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
   }
 }
 
-#ifndef OSAP_IS_MINI
 // later we can... make these w/ the OSAP_DEBUG and OSAP_ERROR macros, 
 // to do i.e. simple logging if we are MINI and more verbosity if we are a BIGBOI 
 
@@ -131,8 +130,6 @@ void OSAP::debug(String msg, OSAPDebugStreams stream){
   debugPrint(msg);
   debugCount ++;
 }
-
-#endif 
 
 // there's another one of these in ts.h, sorry again:
 union chnk_float32 {

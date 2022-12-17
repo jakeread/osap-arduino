@@ -27,6 +27,7 @@ enum OSAPDebugStreams { DBG_DFLT, LOOP };
 
 class OSAP : public Vertex {
   public: 
+    void init(void);
     void loop(void) override;
     void destHandler(VPacket* pck, uint16_t ptr);
     // das root 
@@ -35,10 +36,8 @@ class OSAP : public Vertex {
     static VPacket* stack;
     static uint16_t stackLen;
     // does some debuggen 
-    #ifndef OSAP_IS_MINI
     static void error(String msg, OSAPErrorLevels lvl = MINOR );
     static void debug(String msg, OSAPDebugStreams stream = DBG_DFLT );
-    #endif 
     static uint32_t loopItemsHighWaterMark;
     // I'm uuuh... going to stuff type stuff in here, as a hack, sorry:
     float readFloat(uint8_t* buf);

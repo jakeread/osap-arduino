@@ -54,13 +54,15 @@ void stackReset(VPacket* stack, uint16_t stackLen){
 // if we have free space, hand it over:
 // this is ~ polling, so items re-request each time. 
 VPacket* stackRequest(Vertex* vt){
+  // null to start, 
   VPacket* res = nullptr;
+  // if we have stack avail & vt isn't maxxed on packets, 
   if(firstFree->vt == nullptr && vt->currentPacketHold < vt->maxPacketHold){
     // digitalWrite(2, HIGH);
     // this is available, hand it over:
     res = firstFree;
     res->vt = vt;
-    vt->maxPacketHold ++;
+    vt->currentPacketHold ++;
     // increment first-free before doing so, 
     // if that's full, it will be obvious on next check to firstFree... 
     firstFree = firstFree->next;
@@ -90,6 +92,7 @@ void stackLoadPacket(VPacket* packet, uint8_t* data, uint16_t dataLen){
 void stackRelease(VPacket* packet){
   // decriment this
   packet->vt->currentPacketHold --;
+  // OSAP::debug("release at " + String(packet->vt->name) + " has " + String(packet->vt->currentPacketHold));
   // reset stats... the last two are maybe not necessary to reset, but we're tidy out here 
   packet->len = 0;
   packet->vt = nullptr;

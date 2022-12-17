@@ -48,12 +48,6 @@ void VPort_ArduinoSerial::begin(void){
 // structured like:
 // checksum | pck/ack key | pck id | cobs encoded data | 0 
 
-#warning TODO here 
-/*
-OK this ... almost works: it does, but just once, then some state (probably) doesn't un-latch, and it borks 
-I'm also not 100% on the new stackRequest, for example, so it would be worth checking through that sequence on the 
-second (failing) ping: do we just fail to exit, or what? 
-*/
 void VPort_ArduinoSerial::loop(void){
   // byte injestion: think of this like the rx interrupt stage, 
   while(stream->available() && rxBufferLen == 0){
@@ -100,8 +94,10 @@ void VPort_ArduinoSerial::loop(void){
   // performance improvement also might mean... different algos for USB-serial and for Serial-Serial, 
   // though sharing them would mean compatibility across i.e. usb-to-uart devices, IDK man 
   if(rxBufferLen && !ackIsAwaiting){
+    // OSAP::debug("VP: rx'd");
     VPacket* pck = stackRequest(this);
     if(pck != nullptr){
+      // OSAP::debug("VP: stack acquired");
       // we can decode COBS straight in... i.e. if we have smaller vertex sizes 
       // than the default serial-packet length (255, bc uint8), we could be doing some 
       // bigly unsafe-unpacks here (!) 
@@ -127,6 +123,7 @@ void VPort_ArduinoSerial::send(uint8_t* data, uint16_t len){
   // cts() == true means that our outAwaiting has been tx'd, is drained, etc 
   if(!cts()) return;
   // setup, 
+  // OSAP::debug("sendy");
   outAwaiting[0] = len + 5;               // pck[0] is checksum = len + checksum + cobs start + cobs delimit + ack/pack + id 
   outAwaiting[1] = SERLINK_KEY_PCK;       // this ones a packet m8 
   outAwaitingId ++; if(outAwaitingId == 0) outAwaitingId = 1;
@@ -143,6 +140,7 @@ void VPort_ArduinoSerial::send(uint8_t* data, uint16_t len){
 
 // we are CTS if outPck is not occupied, 
 boolean VPort_ArduinoSerial::cts(void){
+  // OSAP::debug("VP cts: " + String(outAwaitingLen));
   return (outAwaitingLen == 0);
 }
 
@@ -160,11 +158,13 @@ void VPort_ArduinoSerial::checkOutputStates(void){
       // acks get out first, 
       txState = SERLINK_TX_ACK;
       lastTxTime = millis();
-    } else if (outAwaitingLen && (outAwaitingLTAT == 0 || outAwaitingLTAT + SERLINK_RETRY_TIME < micros())){
+    } else if (outAwaitingLen && outAwaitingLTAT + SERLINK_RETRY_TIME < micros()){
+      // OSAP::debug("---");
       // then packets... the above says: if we have an out packet and (1) we haven't yet tx'd it *or* (2) we should retry it, 
       if(outAwaitingNTA > SERLINK_RETRY_MACOUNT){
         // bail on it, this was meant to be our last attempt, still no ack, 
         outAwaitingLen = 0;
+        outAwaitingNTA = 0;
       } else {
         // setup to retransmit 
         txState = SERLINK_TX_PCK;
@@ -178,7 +178,7 @@ void VPort_ArduinoSerial::checkOutputStates(void){
       txState = SERLINK_TX_KPA;
       lastTxTime = millis();
     }
-  } 
+  }
   // then operate on this? 
   switch(txState){
     case SERLINK_TX_NONE:
@@ -199,6 +199,7 @@ void VPort_ArduinoSerial::checkOutputStates(void){
         stream->write(outAwaiting[outTxRp ++]);
         if(outTxRp >= outAwaitingLen){
           outTxRp = 0;
+          outAwaitingLen = 0;
           txState = SERLINK_TX_NONE;
           return;
         }
