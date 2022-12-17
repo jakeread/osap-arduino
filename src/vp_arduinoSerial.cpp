@@ -97,7 +97,7 @@ void VPort_ArduinoSerial::loop(void){
   // would be nice to cobs-in-place, non? https://github.com/charlesnicholson/nanocobs 
   // performance improvement also might mean... different algos for USB-serial and for Serial-Serial, 
   // though sharing them would mean compatibility across i.e. usb-to-uart devices, IDK man 
-  if(rxBufferLen && !ackIsAwaiting){
+  if(rxBufferLen){//} && !ackIsAwaiting){
     // OSAP::debug("VP: rx'd");
     VPacket* pck = stackRequest(this);
     if(pck != nullptr){
