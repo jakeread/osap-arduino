@@ -58,6 +58,7 @@ VPacket* stackRequest(Vertex* vt){
   VPacket* res = nullptr;
   // if we have stack avail & vt isn't maxxed on packets, 
   if(firstFree->vt == nullptr && vt->currentPacketHold < vt->maxPacketHold){
+    OSAP::debug(String(vt->currentPacketHold) + " : " + String(vt->maxPacketHold));
     // digitalWrite(2, HIGH);
     // this is available, hand it over:
     res = firstFree;

@@ -20,12 +20,16 @@ VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, const char* _name, Ua
 ) : VPort ( _parent, _name ){
   stream = _uart; // should convert Uart* to Stream*, as Uart inherits stream 
   uart = _uart; 
+  // additionally, give ourselves more stack allocation:
+  maxPacketHold = 4;
 }
 
 VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, const char* _name, Serial_* _usbcdc
 ) : VPort ( _parent, _name ){
   stream = _usbcdc;
   usbcdc = _usbcdc;
+  // additionally, give ourselves more stack allocation:
+  maxPacketHold = 4;
 }
 
 void VPort_ArduinoSerial::begin(uint32_t baudRate){
