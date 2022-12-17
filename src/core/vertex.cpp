@@ -68,6 +68,7 @@ void Vertex::pingRequestHandler(VPacket* pck, uint16_t ptr){
 
 // 344 bytes 
 void Vertex::scopeRequestHandler(VPacket* pck, uint16_t ptr){
+  OSAP::debug("scope handler");
   // key & id, 
   payload[0] = PK_SCOPERES;
   payload[1] = pck->data[ptr + 2];

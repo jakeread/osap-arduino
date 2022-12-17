@@ -30,7 +30,6 @@ no warranty is provided, and users accept all liability.
 // count of broadcast channels width, 
 #define VBUS_MAX_BROADCAST_CHANNELS 64 
 
-// squish it ?
-#define OSAP_IS_MINI 
+#define OSAP_IS_MINI
 
 #endif 

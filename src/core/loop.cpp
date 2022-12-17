@@ -17,6 +17,7 @@ no warranty is provided, and users accept all liability.
 #include "osap.h"
 
 #define TEMP_MAX_PCK_PER_LOOP 16
+VPacket* packetsToHandle[TEMP_MAX_PCK_PER_LOOP];
 
 void vertexLoopRecursor(Vertex* vt){
   // run yer loop code, 
@@ -32,9 +33,8 @@ void osapLoop(Vertex* root){
   vertexLoopRecursor(root);
   // we're going to try to serve a bunch of packets, to start... maximum 16 per turn, 
   // but this should be revised to use sorted-queues, RAM is valuable ! 
-  // like... this is 16 ptrs, so 16*4=64 bytes for the list... and is limited in lenght, and 
   // we have a list already (!) that we are allegedly maintaining in order 
-  VPacket* packetsToHandle[TEMP_MAX_PCK_PER_LOOP];
+  // so this bit of implementation should get an update when we start really cramming data thru graphs 
   uint16_t pckListLength = stackGetPacketsToHandle(packetsToHandle, TEMP_MAX_PCK_PER_LOOP);
   // stash high-water mark,
   if(pckListLength > OSAP::loopItemsHighWaterMark) OSAP::loopItemsHighWaterMark = pckListLength;
@@ -70,6 +70,9 @@ void osapPacketHandler(VPacket* pck){
   switch(PK_READKEY(pck->data[ptr + 1])){
     // ------------------------------------------ Terminal / Destination Switches 
     case PK_DEST:
+      OSAP::debug("dest to ");// + String(pck->vt->name));
+      stackRelease(pck);
+      return;
       pck->vt->destHandler(pck, ptr);
       break;
     case PK_PINGREQ:
@@ -211,10 +214,11 @@ boolean internalTransport(VPacket* pck, uint16_t ptr){
         if(vt->currentPacketHold < vt->maxPacketHold){
           // walk the ptr fwds, 
           walkPtr(pck->data, pck->vt, opCount, ptr);
+          // current holder now has one less, 
+          pck->vt->currentPacketHold --;
           // pass the packet, i.e. pass the vertex to the packet 
-          // i.e. the engine doesn't move the ship through the universe, 
-          // it moves the universe around the ship; 
           pck->vt = vt;
+          // next holder now has one more 
           vt->currentPacketHold ++;
           #warning we would also sort this bad-boy back into place here, non ? 
           pck->arrivalTime = millis();

@@ -181,3 +181,16 @@ void ts_writeString(String val, unsigned char* buf, uint16_t* ptr){
   ts_writeString(&val, buf, ptr);
 }
 
+String ts_readString(unsigned char* buf, uint16_t* ptr){
+  // length is up front;
+  uint32_t len = ts_readUint32(buf, ptr);
+  // the rest is char array... 
+  char cStr[len];
+  for(uint16_t c = 0; c < len; c ++){
+    cStr[c] = buf[(*ptr) + c];
+  }
+  // terminate it... 
+  cStr[len] = '\0';
+  // and we can constructor that...
+  return String(cStr);
+}
