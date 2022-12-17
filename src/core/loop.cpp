@@ -70,9 +70,6 @@ void osapPacketHandler(VPacket* pck){
   switch(PK_READKEY(pck->data[ptr + 1])){
     // ------------------------------------------ Terminal / Destination Switches 
     case PK_DEST:
-      OSAP::debug("dest to ");// + String(pck->vt->name));
-      stackRelease(pck);
-      return;
       pck->vt->destHandler(pck, ptr);
       break;
     case PK_PINGREQ:

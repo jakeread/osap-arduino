@@ -76,8 +76,6 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
   uint16_t wptr = 0;
   uint16_t len = 0;
   OSAP::debug("root dest-handler");
-  stackRelease(pck);
-  return;
   switch(pck->data[ptr + 2]){
     case RT_RENAME_REQ:
         { 
@@ -106,35 +104,23 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
         uint16_t rptr = ptr + 4;
         String incoming = ts_readString(pck->data, &rptr);
         OSAP::debug("str in is: " + incoming);
-        stackRelease(pck);
-        // // first we need to get this mfer, 
-        // String incoming = ts_readString(item->data, &rptr);
-        // // uint16_t stringLen = ts_readUint32(item->data, &rptr);
-        // // OSAP::error("str is " + String(stringLen) + " chars long?");
-        // OSAP::error("str is: " + incoming);
-        // name = incoming;
-        // OSAP::error("name is now..." + name);
-        // // and write to eeprom... 
-        // int16_t storedAddress = 0;
-        // int signature = 0;
-        // strcpy(tempStr, incoming.c_str());
-        // // here's a hack: for some reason, c-str methods here are +1 char too long 
-        // // so I want to truncate-by-one, before doing the copy-in-to-eeprom,
-        // // tempStr[strlen(tempStr) - 1] = 0;
-        // // or perhaps I was straight up writing strings improperly ? 
-        // // I should resolve that... by hopping onto the opap-mini branch 
-        // // and fixing / finishing it, where we use c-strings exclusively 
-        // // and not these String PITAs
-        // EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
-        // EEPROM.put(storedAddress + sizeof(signature), tempStr);
-        // EEPROM.commit();
-        // // we need to get these, I guess as a char-array anyways, 
-        // // there needs to be a "changeName" function (?) etc, 
-        // payload[wptr ++] = 1; // can return '0' if not-d21 / also should do per-micro compile, 
-        // #warning should not copile flash stuff if we have a non-samd-supported chip (!)  
-        // len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
-        // stackClearSlot(item);
-        // stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        // get that as a cstr, since we have not properly flushed arduino strings from sys... 
+        strcpy(tempStr, incoming.c_str());
+        // from *there* copy it to our name for this runtime, 
+        strncpy(name, tempStr, VT_NAME_MAX_LEN - 1);
+        OSAP::debug("name is now: " + String(name));
+        // and stash it 2 our nvm, 
+        int16_t storedAddress = 0;
+        int signature = 0;
+        EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
+        EEPROM.put(storedAddress + sizeof(signature), tempStr);
+        EEPROM.commit();
+        // we need to get these, I guess as a char-array anyways, 
+        // there needs to be a "changeName" function (?) etc, 
+        payload[wptr ++] = 1; // can return '0' if not-d21 / also should do per-micro compile, 
+        #warning should not copile flash stuff if we have a non-samd-supported chip (!)  
+        len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+        stackLoadPacket(pck, datagram, len);
       }
       break;
     case RT_DBG_STAT:
