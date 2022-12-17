@@ -164,7 +164,7 @@ void Endpoint::loop(void){
     if(pck != nullptr){
       // make sure we'll have enough space...
       if(dataLen + routeTxList[r]->route->pathLen + 3 >= VT_VPACKET_MAX_SIZE){
-        OSAP_ERROR("attempting to write oversized datagram at " + name);
+        OSAP_ERROR("attempting to write oversized datagram at " + String(name));
         routeTxList[r]->state = EP_TX_IDLE;
         continue;
       }
@@ -329,7 +329,7 @@ void Endpoint::destHandler(VPacket* pck, uint16_t ptr){
           uint16_t segSize = ts_readUint16(pck->data, ptr + 7);
           uint8_t* path = &(pck->data[ptr + 9]);
           uint16_t pathLen = pck->len - (ptr + 10);
-          OSAP_DEBUG("adding path... w/ ttl " + String(ttl) + " ss " + String(segSize) + " pathLen " + String(pathLen));
+          // OSAP_DEBUG("endpoint " + String(name) + " adding path... w/ ttl " + String(ttl) + " ss " + String(segSize) + " pathLen " + String(pathLen));
           uint8_t routeIndice = addRoute(new Route(path, pathLen, ttl, segSize), mode);
           payload[4] = routeIndice;
         } else {

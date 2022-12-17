@@ -87,11 +87,11 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
         // EEPROM.get(storedAddress, signature);
         // // check... 
         // if(signature == WRITTEN_SIGNATURE){
-        //   OSAP::error("sigCheck is deadbeef !");
+        //   OSAP_ERROR("sigCheck is deadbeef !");
         //   EEPROM.get(storedAddress + sizeof(signature), tempStr);
-        //   OSAP::error("rtName..." + String(tempStr));
+        //   OSAP_ERROR("rtName..." + String(tempStr));
         // } else {
-        //   OSAP::error("sigCheck is blank, will try writing");
+        //   OSAP_ERROR("sigCheck is blank, will try writing");
         //   EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
         //   EEPROM.put(storedAddress + sizeof(signature), testName);
         // }
@@ -102,12 +102,12 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
         // get the string... write is str8 to the name ? 
         uint16_t rptr = ptr + 4;
         String incoming = ts_readString(pck->data, &rptr);
-        // OSAP::debug("str in is: " + incoming);
+        // OSAP_DEBUG("str in is: " + incoming);
         // get that as a cstr, since we have not properly flushed arduino strings from sys... 
         strcpy(tempStr, incoming.c_str());
         // from *there* copy it to our name for this runtime, 
         strncpy(name, tempStr, VT_NAME_MAX_LEN - 1);
-        // OSAP::debug("name is now: " + String(name));
+        // OSAP_DEBUG("name is now: " + String(name));
         // and stash it 2 our nvm, 
         int16_t storedAddress = 0;
         int signature = 0;

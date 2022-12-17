@@ -43,8 +43,22 @@ class OSAP : public Vertex {
     float readFloat(uint8_t* buf);
 };
 
+// debug w/ this... 
+#ifdef OSAP_HAS_DEBUG_MSGS
+#define OSAP_DEBUG(msg) OSAP::debug(String(msg))
+#else 
 #define OSAP_DEBUG(msg) 
-#define OSAP_ERROR(msg)
-#define OSAP_ERROR_HALTING(msg)
+#endif 
+
+// genny error msgs w/ this... 
+#ifdef OSAP_HAS_ERROR_MSGS
+#define OSAP_ERROR(msg) OSAP::error(String(msg)) 
+#else
+#define OSAP_ERROR(msg) 
+#endif 
+
+// this... yeah: we should i.e. stash the message, suspend operation, 
+// and try to make some effort to leave comms open, but this is the current situation: 
+#define OSAP_ERROR_HALTING(msg) while(1){};
 
 #endif 

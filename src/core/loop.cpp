@@ -47,7 +47,7 @@ void osapLoop(Vertex* root){
     // rm deadies... this whole block is uggo, innit ? 
     packetsToHandle[i]->deadline = ts_readUint16(packetsToHandle[i]->data, 0) - (now - packetsToHandle[i]->arrivalTime);
     if(packetsToHandle[i]->deadline < 0){
-      OSAP_DEBUG(  "item at " + packetsToHandle[i]->vt->name + 
+      OSAP_DEBUG(  "item at " + String(packetsToHandle[i]->vt->name) + 
                   " times out w/ " + String(packetsToHandle[i]->deadline) + 
                   " ms to live, of " + String(ts_readUint16(packetsToHandle[i]->data, 0)) + " ttl");
       stackRelease(packetsToHandle[i]);
@@ -62,7 +62,7 @@ void osapPacketHandler(VPacket* pck){
   // get a ptr for the item, 
   uint16_t ptr = 0;
   if(!findPtr(pck->data, &ptr)){
-    OSAP_ERROR("item at " + pck->vt->name + " unable to find ptr, deleting...");
+    OSAP_ERROR("item at " + String(pck->vt->name) + " unable to find ptr, deleting...");
     stackRelease(pck);
     return;
   }
@@ -80,7 +80,7 @@ void osapPacketHandler(VPacket* pck){
       break;
     case PK_PINGRES:
     case PK_SCOPERES:
-      OSAP_ERROR("ping or scope request issued to " + pck->vt->name + " not handling those in embedded");
+      OSAP_ERROR("ping or scope request issued to " + String(pck->vt->name) + " not handling those in embedded");
       stackRelease(pck);
       break;
     // ------------------------------------------ Internal Transport 
@@ -94,7 +94,7 @@ void osapPacketHandler(VPacket* pck){
     case PK_PFWD:
       // port forward...
       if(pck->vt->vport == nullptr){
-        OSAP_ERROR("pfwd to non-vport " + pck->vt->name);
+        OSAP_ERROR("pfwd to non-vport " + String(pck->vt->name));
         stackRelease(pck);
       } else {
         if(pck->vt->vport->cts()){
@@ -114,7 +114,7 @@ void osapPacketHandler(VPacket* pck){
     case PK_BBRD:
       // bus forward / bus broadcast: 
       if(pck->vt->vbus == nullptr){
-        OSAP_ERROR("bfwd to non-vbus " + pck->vt->name);
+        OSAP_ERROR("bfwd to non-vbus " + String(pck->vt->name));
         stackRelease(pck);
       } else {
         // arg is rxAddr for bus-forwards, is broadcastChannel for bus-broadcast, 
@@ -152,7 +152,7 @@ void osapPacketHandler(VPacket* pck){
       stackRelease(pck);
       break;
     default:
-      OSAP_ERROR("unrecognized ptr to " + pck->vt->name + " " + String(PK_READKEY(pck->data[ptr + 1])));
+      OSAP_ERROR("unrecognized ptr to " + String(pck->vt->name) + " " + String(PK_READKEY(pck->data[ptr + 1])));
       stackRelease(pck);
       break;
   } // end the-big-switch, 
@@ -175,9 +175,9 @@ boolean internalTransport(VPacket* pck, uint16_t ptr){
       case PK_SIB:
         // check validity of route & shift our reference vt,
         if(vt->parent == nullptr){
-          OSAP_ERROR("no parent at " + vt->name + " during sib transport"); return true;
+          OSAP_ERROR("no parent at " + String(vt->name) + " during sib transport"); return true;
         } else if (arg >= vt->parent->numChildren){
-          OSAP_ERROR("no sibling " + String(arg) + " at " + vt->name + " during sib transport"); return true;
+          OSAP_ERROR("no sibling " + String(arg) + " at " + String(vt->name) + " during sib transport"); return true;
         } else {
           // this is it: we go fwds to this vt & end-of-switch statements increment ptrs
           vt = vt->parent->children[arg];
@@ -185,7 +185,7 @@ boolean internalTransport(VPacket* pck, uint16_t ptr){
         break;
       case PK_PARENT:
         if(vt->parent == nullptr){
-          OSAP_ERROR("no parent at " + vt->name + " during parent transport"); return true;
+          OSAP_ERROR("no parent at " + String(vt->name) + " during parent transport"); return true;
         } else {
           // likewise... 
           vt = vt->parent;
@@ -193,7 +193,7 @@ boolean internalTransport(VPacket* pck, uint16_t ptr){
         break;
       case PK_CHILD:
         if(arg >= vt->numChildren){
-          OSAP_ERROR("no child " + String(arg) + " at " + vt->name + " during child transport"); return true;
+          OSAP_ERROR("no child " + String(arg) + " at " + String(vt->name) + " during child transport"); return true;
         } else {
           // again, just walk fwds... 
           vt = vt->children[arg];

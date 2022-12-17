@@ -98,10 +98,10 @@ void VPort_ArduinoSerial::loop(void){
   // performance improvement also might mean... different algos for USB-serial and for Serial-Serial, 
   // though sharing them would mean compatibility across i.e. usb-to-uart devices, IDK man 
   if(rxBufferLen){//} && !ackIsAwaiting){
-    // OSAP::debug("VP: rx'd");
+    // OSAP_DEBUG("VP: rx'd");
     VPacket* pck = stackRequest(this);
     if(pck != nullptr){
-      // OSAP::debug("VP: stack acquired");
+      // OSAP_DEBUG("VP: stack acquired");
       // we can decode COBS straight in... i.e. if we have smaller vertex sizes 
       // than the default serial-packet length (255, bc uint8), we could be doing some 
       // bigly unsafe-unpacks here (!) 
@@ -127,7 +127,7 @@ void VPort_ArduinoSerial::send(uint8_t* data, uint16_t len){
   // cts() == true means that our outAwaiting has been tx'd, is drained, etc 
   if(!cts()) return;
   // setup, 
-  // OSAP::debug("sendy");
+  // OSAP_DEBUG("sendy");
   outAwaiting[0] = len + 5;               // pck[0] is checksum = len + checksum + cobs start + cobs delimit + ack/pack + id 
   outAwaiting[1] = SERLINK_KEY_PCK;       // this ones a packet m8 
   outAwaitingId ++; if(outAwaitingId == 0) outAwaitingId = 1;
@@ -144,7 +144,7 @@ void VPort_ArduinoSerial::send(uint8_t* data, uint16_t len){
 
 // we are CTS if outPck is not occupied, 
 boolean VPort_ArduinoSerial::cts(void){
-  // OSAP::debug("VP cts: " + String(outAwaitingLen));
+  // OSAP_DEBUG("VP cts: " + String(outAwaitingLen));
   return (outAwaitingLen == 0);
 }
 
@@ -163,7 +163,7 @@ void VPort_ArduinoSerial::checkOutputStates(void){
       txState = SERLINK_TX_ACK;
       lastTxTime = millis();
     } else if (outAwaitingLen && outAwaitingLTAT + SERLINK_RETRY_TIME < micros()){
-      // OSAP::debug("---");
+      // OSAP_DEBUG("---");
       // then packets... the above says: if we have an out packet and (1) we haven't yet tx'd it *or* (2) we should retry it, 
       if(outAwaitingNTA > SERLINK_RETRY_MACOUNT){
         // bail on it, this was meant to be our last attempt, still no ack, 

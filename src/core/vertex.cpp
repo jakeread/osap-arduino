@@ -36,7 +36,7 @@ Vertex::Vertex(Vertex* _parent, const char* _name){
     indice = 0;
   } else {
     if (_parent->numChildren >= VT_MAX_CHILDREN) {
-      OSAP_ERROR_HALTING("trying to nest a vertex under " + _parent->name + " but we have reached VT_MAX_CHILDREN limit");
+      OSAP_ERROR_HALTING("trying to nest a vertex under " + String(_parent->name) + " but we have reached VT_MAX_CHILDREN limit");
     } else {
       this->indice = _parent->numChildren;
       this->parent = _parent;
@@ -51,7 +51,7 @@ void Vertex::loop(void){
 
 void Vertex::destHandler(VPacket* pck, uint16_t ptr){
   // generic handler...
-  OSAP_DEBUG("generic destHandler at " + name);
+  OSAP_DEBUG("generic destHandler at " + String(name));
   stackRelease(pck);
 }
 
@@ -68,7 +68,7 @@ void Vertex::pingRequestHandler(VPacket* pck, uint16_t ptr){
 
 // 344 bytes 
 void Vertex::scopeRequestHandler(VPacket* pck, uint16_t ptr){
-  // OSAP::debug("scope handler");
+  // OSAP_DEBUG("scope handler");
   // key & id, 
   payload[0] = PK_SCOPERES;
   payload[1] = pck->data[ptr + 2];
@@ -325,7 +325,7 @@ void VBus::destHandler(VPacket* pck, uint16_t ptr){
       }
       #endif 
     default:
-      OSAP_ERROR("vbus rx msg w/ unrecognized vbus key " + String(item->data[ptr + 2]) + " bailing");
+      OSAP_ERROR("vbus rx msg w/ unrecognized vbus key " + String(pck->data[ptr + 2]) + " bailing");
       stackRelease(pck);
       break;
   } 
