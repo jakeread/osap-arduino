@@ -58,8 +58,7 @@ VPacket* stackRequest(Vertex* vt){
   VPacket* res = nullptr;
   // if we have stack avail & vt isn't maxxed on packets, 
   if(firstFree->vt == nullptr && vt->currentPacketHold < vt->maxPacketHold){
-    OSAP::debug("req: " + String(vt->name) + "\t: "  + String(vt->currentPacketHold) + " / " + String(vt->maxPacketHold));
-    // digitalWrite(2, HIGH);
+    // OSAP::debug("req: " + String(vt->name) + "\t: "  + String(vt->currentPacketHold) + " / " + String(vt->maxPacketHold));
     // this is available, hand it over:
     res = firstFree;
     res->vt = vt;
@@ -93,8 +92,7 @@ void stackLoadPacket(VPacket* packet, uint8_t* data, uint16_t dataLen){
 void stackRelease(VPacket* packet){
   // decriment this
   packet->vt->currentPacketHold --;
-  OSAP::debug("rel: " + String(packet->vt->name) + "\t: " + String(packet->vt->currentPacketHold) + " / " + String(packet->vt->maxPacketHold));
-  // OSAP::debug("release at " + String(packet->vt->name) + " has " + String(packet->vt->currentPacketHold));
+  // OSAP::debug("rel: " + String(packet->vt->name) + "\t: " + String(packet->vt->currentPacketHold) + " / " + String(packet->vt->maxPacketHold));
   // reset stats... the last two are maybe not necessary to reset, but we're tidy out here 
   packet->len = 0;
   packet->vt = nullptr;

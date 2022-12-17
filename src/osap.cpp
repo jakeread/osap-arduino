@@ -75,7 +75,6 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
   // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == ROOT_KEY, ptr + 3 = ID (if ack req.) 
   uint16_t wptr = 0;
   uint16_t len = 0;
-  OSAP::debug("root dest-handler");
   switch(pck->data[ptr + 2]){
     case RT_RENAME_REQ:
         { 
@@ -103,12 +102,12 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
         // get the string... write is str8 to the name ? 
         uint16_t rptr = ptr + 4;
         String incoming = ts_readString(pck->data, &rptr);
-        OSAP::debug("str in is: " + incoming);
+        // OSAP::debug("str in is: " + incoming);
         // get that as a cstr, since we have not properly flushed arduino strings from sys... 
         strcpy(tempStr, incoming.c_str());
         // from *there* copy it to our name for this runtime, 
         strncpy(name, tempStr, VT_NAME_MAX_LEN - 1);
-        OSAP::debug("name is now: " + String(name));
+        // OSAP::debug("name is now: " + String(name));
         // and stash it 2 our nvm, 
         int16_t storedAddress = 0;
         int signature = 0;
