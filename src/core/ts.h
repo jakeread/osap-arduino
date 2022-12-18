@@ -157,4 +157,7 @@ void ts_writeString(String val, unsigned char* buf, uint16_t* ptr);
 void ts_writeString(unsigned char* str, uint16_t strLen, unsigned char* buf, uint16_t* ptr, uint16_t maxLen);
 String ts_readString(unsigned char* buf, uint16_t *ptr);
 
+// this should ~ just be a call to strncpy more or less, non ? 
+String ts_readString(unsigned char* buf, uint16_t* ptr);
+
 #endif 

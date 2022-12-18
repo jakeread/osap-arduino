@@ -16,123 +16,138 @@ no warranty is provided, and users accept all liability.
 #include "vertex.h"
 #include "osap.h"
 
-// ---------------------------------------------- Stack Tools 
+// local state !
 
-void stackReset(Vertex* vt){
-  // clear all elements & write next ptrs in linear order 
-  for(uint8_t od = 0; od < 2; od ++){
-    // set lengths, etc, 
-    for(uint8_t s = 0; s < vt->stackSize; s ++){
-      vt->stack[od][s].arrivalTime = 0;
-      vt->stack[od][s].len = 0;
-      vt->stack[od][s].indice = s;
-      // and ptrs to self, 
-      vt->stack[od][s].vt = vt;
-      vt->stack[od][s].od = od;
-    }
-    // set next ptrs, 
-    for(uint8_t s = 0; s < vt->stackSize - 1; s ++){
-      vt->stack[od][s].next = &(vt->stack[od][s + 1]);
-    }
-    vt->stack[od][vt->stackSize - 1].next = &(vt->stack[od][0]);
-    // set previous ptrs, 
-    for(uint8_t s = 1; s < vt->stackSize; s ++){
-      vt->stack[od][s].previous = &(vt->stack[od][s - 1]);
-    }
-    vt->stack[od][0].previous = &(vt->stack[od][vt->stackSize - 1]);
-    // 1st element is 0th on startup, 
-    vt->queueStart[od] = &(vt->stack[od][0]); 
-    // first free = tail at init, 
-    vt->firstFree[od] = &(vt->stack[od][0]);
+VPacket* queueStart;
+VPacket* firstFree;
+uint16_t nowServing = 0;
+uint16_t nextTicket = 0;
+
+// -------------------------------------------------------- Init! 
+
+void stackReset(VPacket* stack, uint16_t stackLen){
+  // per indice, 
+  for(uint16_t p = 0; p < stackLen; p ++){
+    stack[p].len = 0;
+    stack[p].vt = nullptr;
+    stack[p].arrivalTime = 0;
+    stack[p].deadline = 0;
+    stack[p].indice = p; // not sure if we'll use this ??
   }
+  // set next ptrs,
+  for(uint16_t p = 0; p < stackLen - 1; p ++){
+    stack[p].next = &(stack[p+1]);
+  }
+  stack[stackLen - 1].next = &(stack[0]);
+  // set previous ptrs, 
+  for(uint16_t p = 1; p < stackLen; p ++){
+    stack[p].previous = &(stack[p-1]);
+  }
+  stack[0].previous = &(stack[stackLen - 1]);  
+  // queueStart element is [0], as is the firstFree, at startup, 
+  queueStart = &(stack[0]);
+  firstFree = &(stack[0]);
 }
 
-// -------------------------------------------------------- ORIGIN SIDE 
-// true if there's any space in the stack, 
-boolean stackEmptySlot(Vertex* vt, uint8_t od){
-  if(od > 1) return false;
-  // if 1st free has ptr to next item, not full 
-  if(vt->firstFree[od]->next->len != 0){
-    return false;
+// -------------------------------------------------------- Origin / Injest 
+
+// if we have free space, hand it over:
+// this is ~ polling, so items re-request each time. 
+VPacket* stackRequest(Vertex* vt){
+  // null to start, 
+  VPacket* res = nullptr;
+  // if we have stack avail & vt isn't maxxed on packets, 
+  if(firstFree->vt == nullptr && vt->currentPacketHold < vt->maxPacketHold){
+    // OSAP_DEBUG("req: " + String(vt->name) + "\t: "  + String(vt->currentPacketHold) + " / " + String(vt->maxPacketHold));
+    // this is available, hand it over:
+    res = firstFree;
+    res->vt = vt;
+    vt->currentPacketHold ++;
+    // increment first-free before doing so, 
+    // if that's full, it will be obvious on next check to firstFree... 
+    firstFree = firstFree->next;
+    return res;
   } else {
-    return true;
+    #warning this does not do anything yet, right? ... need arbitration above, or sth
+    vt->ticket = nextTicket;
+    nextTicket ++;
+    // return that nullptr, 
+    return res;
   }
 }
 
-// loads data into stack 
-void stackLoadSlot(Vertex* vt, uint8_t od, uint8_t* data, uint16_t len){
-  if(od > 1) return; // bad od, lost data 
-  // copy into first free element, 
-  memcpy(vt->firstFree[od]->data, data, len);
-  vt->firstFree[od]->len = len;
-  vt->firstFree[od]->arrivalTime = millis();
-  //DEBUG("load " + String(vt->firstFree[od]->indice) + " " + String(vt->firstFree[od]->arrivalTime));
-  // now firstFree is next, 
-  vt->firstFree[od] = vt->firstFree[od]->next;
+// pck was copied-in au-manuel, here is marking it's length and "arrival" time 
+void stackLoadPacket(VPacket* packet, uint16_t dataLen){
+  packet->len = dataLen;
+  packet->arrivalTime = millis();
 }
 
-// -------------------------------------------------------- EXIT SIDE 
-// return count of items occupying stack, and list of ptrs to them, 
-uint8_t stackGetItems(Vertex* vt, uint8_t od, stackItem** items, uint8_t maxItems){
-  if(od > 1) return 0;
-  // when queueStart == firstFree element, we have nothing for you 
-  if(vt->firstFree[od] == vt->queueStart[od]) return 0;
-  // starting at queue begin, 
-  uint8_t count = 0;
-  stackItem* item = vt->queueStart[od];
-  for(uint8_t s = 0; s < maxItems; s ++){
-    items[s] = item;
-    count ++;
-    if(item->next->len > 0){
-      item = item->next;
-    } else {
-      return count;
-    }
+// this... kind of, should be depricated, in exchange for direct-loading, non?
+void stackLoadPacket(VPacket* packet, uint8_t* data, uint16_t dataLen){
+  if(dataLen > VT_VPACKET_MAX_SIZE){
+    OSAP_ERROR("attempt to load oversized packet");
+  } else {
+    memcpy(packet->data, data, dataLen);
+    packet->len = dataLen;
+    packet->arrivalTime = millis();
   }
-  return count;
 }
 
-// clear the item, 
-void stackClearSlot(Vertex* vt, uint8_t od, stackItem* item){
-  // this would be deadly, so:
-  if(od > 1) {
-    OSAP::error("stackClearSlot, od > 1, badness", MEDIUM);
-    return;
-  }
-  // item is 0-len, etc 
-  item->len = 0;
-  // is this
-  uint8_t indice = item->indice;
+// -------------------------------------------------------- Exit / Release 
+
+void stackRelease(VPacket* packet){
+  // decriment this
+  packet->vt->currentPacketHold --;
+  // OSAP_DEBUG("rel: " + String(packet->vt->name) + "\t: " + String(packet->vt->currentPacketHold) + " / " + String(packet->vt->maxPacketHold));
+  // reset stats... the last two are maybe not necessary to reset, but we're tidy out here 
+  packet->len = 0;
+  packet->vt = nullptr;
+  packet->arrivalTime = 0;
+  packet->deadline = 0;
+  // it's actual location in the stacko is: 
+  uint16_t indice = packet->indice;
   // if was queueStart, queueStart now at next,
-  if(vt->queueStart[od] == item){
-    vt->queueStart[od] = item->next;
-    // and wouldn't have to do any of the below? 
+  if(queueStart == packet){
+    queueStart = packet->next;
+    // and we wouldn't have to do any of the below (?)
   } else {
     // pull from chain, now is free of associations, 
-    // these ops are *always two up*
-    item->previous->next = item->next;
-    item->next->previous = item->previous;
+    packet->previous->next = packet->next;
+    packet->next->previous = packet->previous;
     // now, insert this where old firstFree was 
-    vt->firstFree[od]->previous->next = item;
-    item->previous = vt->firstFree[od]->previous;    
-    item->next = vt->firstFree[od];
-    vt->firstFree[od]->previous = item;
+    firstFree->previous->next = packet;
+    packet->previous = firstFree->previous;    
+    packet->next = firstFree;
+    firstFree->previous = packet;
     // and the item is the new firstFree element, 
-    vt->firstFree[od] = item;
-  }
-  // now we callback to the vertex; these fns are often used to clear flowcontrol condns 
-  switch(od){
-    case VT_STACK_ORIGIN:
-      vt->onOriginStackClear(indice);
-      break;
-    case VT_STACK_DESTINATION:
-      vt->onDestinationStackClear(indice);
-      break;
-    default:  // guarded against this above... 
-      break;
+    firstFree = packet;
   }
 }
 
-void stackClearSlot(stackItem* item){
-  stackClearSlot(item->vt, item->od, item);
+// -------------------------------------------------------- Collect 
+
+// well this is a little awkward but we should be able to eliminate it 
+// when we are doing the insert-sort. 
+uint16_t stackGetPacketsToHandle(VPacket** packets, uint16_t maxPackets){
+  // this is the zero-packets case;
+  if(firstFree == queueStart) return 0;
+  // this is how many max we can possibly list, 
+  uint16_t iters = min(maxPackets, OSAP::stackLen);
+  // otherwise do... 
+  VPacket* pck = queueStart;
+  uint16_t count = 0;
+  for(uint16_t p = 0; p < iters; p ++){
+    // stash it, 
+    packets[p] = pck; 
+    count ++;
+    if(pck->next->vt == nullptr){
+      // if next is empty, this is final count:
+      return count;
+    } else {
+      // if it ain't, collect next and continue stuffing 
+      pck = pck->next;
+    }
+  }
+  // end-of-loop thru all possible, none free, so:
+  return count;
 }

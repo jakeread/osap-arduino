@@ -24,28 +24,44 @@ uint32_t OSAP::loopItemsHighWaterMark = 0;
 uint32_t errorCount = 0;
 uint32_t debugCount = 0;
 // strings...
-unsigned char latestError[VT_SLOTSIZE];
-unsigned char latestDebug[VT_SLOTSIZE];
+unsigned char latestError[VT_VPACKET_MAX_SIZE];
+unsigned char latestDebug[VT_VPACKET_MAX_SIZE];
 uint16_t latestErrorLen = 0;
 uint16_t latestDebugLen = 0;
 
-const int WRITTEN_SIGNATURE = 0xBEEFDEED;
-char testName[5] = "test";
-char rootName[100];
+VPacket* OSAP::stack;
+uint16_t OSAP::stackLen = 0;
 
-OSAP::OSAP(String _name) : Vertex("rt_" + _name){
-  // shouldn't it wake up here ? 
+// name-stashing kit, 
+const int WRITTEN_SIGNATURE = 0xBEEFDEED;
+char testName[12] = "testy-testy";
+char tempStr[100];
+
+OSAP::OSAP(const char* _name, VPacket* _stack, uint16_t _stackLen) : Vertex(){
+  // see vertex.cpp -> vport constructor for notes on this 
+  strcpy(name, "rt_");
+  strncat(name, _name, VT_NAME_MAX_LEN - 4);
+  name[VT_NAME_MAX_LEN - 1] = '\0';
+  // now we'll stash these, 
+  stack = _stack;
+  stackLen = _stackLen;
+  // reset / ready the stacko, 
+  stackReset(stack, stackLen);
 };
 
+// get previous name if it was stashed, 
 void OSAP::init(void){
-  // could do wake-up here, 
+  // wake up and check for your name... 
   int16_t storedAddress = 0;
   int signature;
   EEPROM.get(storedAddress, signature);
   if(signature == WRITTEN_SIGNATURE){
-    EEPROM.get(storedAddress + sizeof(signature), rootName);
-    String newName = String(rootName); // via cstr -> arduino String, whomst we should rm!
-    name = newName; // we are this now... 
+    // EEPROM.get will pull into this temp thing, we think ?
+    EEPROM.get(storedAddress + sizeof(signature), tempStr);
+    // and stash in our-name, with a minimum-size 
+    strncpy(name, tempStr, VT_NAME_MAX_LEN - 1);
+    // String newName = String(tempStr); // via cstr -> arduino String, whomst we should rm!
+    // name = newName; // we are this now... 
   }
 }
 
@@ -54,14 +70,14 @@ void OSAP::loop(void){
   osapLoop(this);
 }
 
-void OSAP::destHandler(stackItem* item, uint16_t ptr){
+void OSAP::destHandler(VPacket* pck, uint16_t ptr){
   // classic switch on 'em 
-  // item->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == ROOT_KEY, ptr + 3 = ID (if ack req.) 
+  // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == ROOT_KEY, ptr + 3 = ID (if ack req.) 
   uint16_t wptr = 0;
   uint16_t len = 0;
-  switch(item->data[ptr + 2]){
+  switch(pck->data[ptr + 2]){
     case RT_RENAME_REQ:
-      { 
+        { 
         // following an example... 
         // int signature = 0;
         // // this is zero ~ because we are not actually writing into the flash address, 
@@ -71,46 +87,39 @@ void OSAP::destHandler(stackItem* item, uint16_t ptr){
         // EEPROM.get(storedAddress, signature);
         // // check... 
         // if(signature == WRITTEN_SIGNATURE){
-        //   OSAP::error("sigCheck is deadbeef !");
-        //   EEPROM.get(storedAddress + sizeof(signature), rootName);
-        //   OSAP::error("rtName..." + String(rootName));
+        //   OSAP_ERROR("sigCheck is deadbeef !");
+        //   EEPROM.get(storedAddress + sizeof(signature), tempStr);
+        //   OSAP_ERROR("rtName..." + String(tempStr));
         // } else {
-        //   OSAP::error("sigCheck is blank, will try writing");
+        //   OSAP_ERROR("sigCheck is blank, will try writing");
         //   EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
         //   EEPROM.put(storedAddress + sizeof(signature), testName);
         // }
+        // start formulating reply ahead of time, 
         payload[wptr ++] = PK_DEST;
         payload[wptr ++] = RT_RENAME_RES;
-        payload[wptr ++] = item->data[ptr + 3];
+        payload[wptr ++] = pck->data[ptr + 3];
         // get the string... write is str8 to the name ? 
         uint16_t rptr = ptr + 4;
-        String incoming = ts_readString(item->data, &rptr);
-        // uint16_t stringLen = ts_readUint32(item->data, &rptr);
-        // OSAP::error("str is " + String(stringLen) + " chars long?");
-        OSAP::error("str is: " + incoming);
-        name = incoming;
-        OSAP::error("name is now..." + name);
-        // and write to eeprom... 
+        String incoming = ts_readString(pck->data, &rptr);
+        // OSAP_DEBUG("str in is: " + incoming);
+        // get that as a cstr, since we have not properly flushed arduino strings from sys... 
+        strcpy(tempStr, incoming.c_str());
+        // from *there* copy it to our name for this runtime, 
+        strncpy(name, tempStr, VT_NAME_MAX_LEN - 1);
+        // OSAP_DEBUG("name is now: " + String(name));
+        // and stash it 2 our nvm, 
         int16_t storedAddress = 0;
         int signature = 0;
-        strcpy(rootName, incoming.c_str());
-        // here's a hack: for some reason, c-str methods here are +1 char too long 
-        // so I want to truncate-by-one, before doing the copy-in-to-eeprom,
-        // rootName[strlen(rootName) - 1] = 0;
-        // or perhaps I was straight up writing strings improperly ? 
-        // I should resolve that... by hopping onto the opap-mini branch 
-        // and fixing / finishing it, where we use c-strings exclusively 
-        // and not these String PITAs
         EEPROM.put(storedAddress, WRITTEN_SIGNATURE);
-        EEPROM.put(storedAddress + sizeof(signature), rootName);
+        EEPROM.put(storedAddress + sizeof(signature), tempStr);
         EEPROM.commit();
         // we need to get these, I guess as a char-array anyways, 
         // there needs to be a "changeName" function (?) etc, 
         payload[wptr ++] = 1; // can return '0' if not-d21 / also should do per-micro compile, 
         #warning should not copile flash stuff if we have a non-samd-supported chip (!)  
-        len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+        stackLoadPacket(pck, datagram, len);
       }
       break;
     case RT_DBG_STAT:
@@ -119,28 +128,33 @@ void OSAP::destHandler(stackItem* item, uint16_t ptr){
       // return w/ the res key & same issuing ID 
       payload[wptr ++] = PK_DEST;
       payload[wptr ++] = RT_DBG_RES;
-      payload[wptr ++] = item->data[ptr + 3];
-      // stash high water mark, errormsg count, debugmsgcount 
+      payload[wptr ++] = pck->data[ptr + 3];
+      // stash high water mark, errormsg count, debugmsgcount, and our version # - 
       ts_writeUint32(OSAP::loopItemsHighWaterMark, payload, &wptr);
       ts_writeUint32(errorCount, payload, &wptr);
       ts_writeUint32(debugCount, payload, &wptr);
+      ts_writeUint32(OSAP_VERSION_NUM, payload, &wptr);
+      // then one of these strings - latest message - if it was requested... 
       // optionally, a string... I know we switch() then if(), it's uggo, 
-      if(item->data[ptr + 2] == RT_DBG_ERRMSG){
-        ts_writeString(latestError, latestErrorLen, payload, &wptr, VT_SLOTSIZE / 2);
-      } else if (item->data[ptr + 2] == RT_DBG_DBGMSG){
-        ts_writeString(latestDebug, latestDebugLen, payload, &wptr, VT_SLOTSIZE / 2);
+      if(pck->data[ptr + 2] == RT_DBG_ERRMSG){
+        ts_writeString(latestError, latestErrorLen, payload, &wptr, VT_VPACKET_MAX_SIZE / 2);
+      } else if (pck->data[ptr + 2] == RT_DBG_DBGMSG){
+        ts_writeString(latestDebug, latestDebugLen, payload, &wptr, VT_VPACKET_MAX_SIZE / 2);
       }
       // that's the payload, I figure, 
-      len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
-      stackClearSlot(item);
-      stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+      len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+      // and it's a replacement again, 
+      stackLoadPacket(pck, datagram, len);
       break;
     default:
-      OSAP::error("unrecognized key to root node " + String(item->data[ptr + 2]));
-      stackClearSlot(item);
+      OSAP_ERROR("unrecognized key to root node " + String(pck->data[ptr + 2]));
+      stackRelease(pck);
       break;
   }
 }
+
+// later we can... make these w/ the OSAP_DEBUG and OSAP_ERROR macros, 
+// to do i.e. simple logging if we are MINI and more verbosity if we are a BIGBOI 
 
 uint8_t errBuf[255];
 uint8_t errBufEncoded[255];
@@ -169,18 +183,18 @@ void debugPrint(String msg){
 }
 
 void OSAP::error(String msg, OSAPErrorLevels lvl){
-  //const char* str = msg.c_str();
-  msg.getBytes(latestError, VT_SLOTSIZE);
+  const char* str = msg.c_str();
+  msg.getBytes(latestError, VT_VPACKET_MAX_SIZE);
   latestErrorLen = msg.length();
-  errorCount ++;
   debugPrint(msg);
+  errorCount ++;
 }
 
 void OSAP::debug(String msg, OSAPDebugStreams stream){
-  msg.getBytes(latestDebug, VT_SLOTSIZE);
+  msg.getBytes(latestDebug, VT_VPACKET_MAX_SIZE);
   latestDebugLen = msg.length();
-  debugCount ++;
   debugPrint(msg);
+  debugCount ++;
 }
 
 // there's another one of these in ts.h, sorry again:

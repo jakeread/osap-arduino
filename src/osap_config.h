@@ -15,20 +15,31 @@ no warranty is provided, and users accept all liability.
 #ifndef OSAP_CONFIG_H_
 #define OSAP_CONFIG_H_
 
-// size of vertex stacks, lenght, then count,
-#define VT_SLOTSIZE 128
-#define VT_STACKSIZE 2  // must be >= 2 for ringbuffer operation 
-#define VT_MAXCHILDREN 16
-#define VT_MAXITEMSPERTURN 8
+// version is passed around as a uint32_t, read as b0.b1.b2.b3, so 0.0.0.1 == 1, etc, 
+#define OSAP_VERSION_NUM 1
 
-// max # of endpoints that could be spawned here,
-#define MAX_CONTEXT_ENDPOINTS 64
+// size of vertex stacks, lenght, then count,
+#define VT_VPACKET_MAX_SIZE 128
+#define VT_NAME_MAX_LEN 31
+#define VT_MAX_CHILDREN 16
 
 // count of routes each endpoint can have, 
+// these, equally, should be allocated in-total, and assigned 
+// to individual endpoints, right ? 
+#define ENDPOINT_MAX_DATA_SIZE 32 
 #define ENDPOINT_MAX_ROUTES 2
-#define ENDPOINT_ROUTE_MAX_LEN 64 
+#define ENDPOINT_ROUTE_MAX_LEN 48
 
 // count of broadcast channels width, 
 #define VBUS_MAX_BROADCAST_CHANNELS 64 
+
+// micro-sized ? should just rm this entirely, one-size osap... 
+// #define OSAP_IS_MINI
+
+// send debug messages?
+#define OSAP_HAS_DEBUG_MSGS
+
+// send error messages?
+#define OSAP_HAS_ERROR_MSGS
 
 #endif 

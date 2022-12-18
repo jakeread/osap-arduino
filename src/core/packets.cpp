@@ -25,6 +25,7 @@ uint16_t readArg(uint8_t* buf, uint16_t ptr){
   return ((buf[ptr] & 0b00001111) << 8) | buf[ptr + 1];
 }
 
+// 60 bytes only 
 boolean findPtr(uint8_t* pck, uint16_t* pt){
   // 1st instruction is always at pck[4], pck[0][1] == ttl, pck[2][3] == segSize 
   uint16_t ptr = 4;
@@ -51,12 +52,13 @@ boolean findPtr(uint8_t* pck, uint16_t* pt){
   return false;
 }
 
+// this fn is a big FLASH offender (276 bytes)
 boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
   // if the ptr we were handed isn't in the right spot, try to find it... 
   if(pck[ptr] != PK_PTR){
     // if that fails, bail... 
     if(!findPtr(pck, &ptr)){
-      OSAP::error("before a ptr walk, ptr is out of place...");
+      OSAP_ERROR("before a ptr walk, ptr is out of place...");
       return false;
     }
   }
@@ -101,7 +103,7 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
         ptr += 2;
         // though this should only ever be called w/ one step, 
         if(steps != 1){
-          OSAP::error("likely bad call to walkPtr, we have port fwd w/ more than one step");
+          OSAP_ERROR("likely bad call to walkPtr, we have port fwd w/ more than one step");
           return false;
         }
         break;
@@ -112,7 +114,7 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
         ptr += 2;
         // this also should only ever be called w/ one step, 
         if(steps != 1){
-          OSAP::error("likely bad call to walkPtr, we have bus fwd w/ more than one step");
+          OSAP_ERROR("likely bad call to walkPtr, we have bus fwd w/ more than one step");
           return false; 
         }
         break;
@@ -123,13 +125,14 @@ boolean walkPtr(uint8_t* pck, Vertex* source, uint8_t steps, uint16_t ptr){
         ptr += 2;
         break;
       default:
-        OSAP::error("have out of place keys in the ptr walk...");
+        OSAP_ERROR("have out of place keys in the ptr walk...");
         return false;
     }
   } // end steps, alleged success,  
   return true; 
 }
 
+// 106 bytes 
 uint16_t writeDatagram(uint8_t* gram, uint16_t maxGramLength, Route* route, uint8_t* payload, uint16_t payloadLen){
   uint16_t wptr = 0;
   ts_writeUint16(route->ttl, gram, &wptr);
@@ -137,7 +140,7 @@ uint16_t writeDatagram(uint8_t* gram, uint16_t maxGramLength, Route* route, uint
   memcpy(&(gram[wptr]), route->path, route->pathLen);
   wptr += route->pathLen;
   if(wptr + payloadLen > route->segSize){
-    OSAP::error("writeDatagram asked to write packet that exceeds segSize, bailing", MEDIUM);
+    OSAP_ERROR("writeDatagram asked to write packet that exceeds segSize, bailing");
     return 0;
   }
   memcpy(&(gram[wptr]), payload, payloadLen);
@@ -146,19 +149,20 @@ uint16_t writeDatagram(uint8_t* gram, uint16_t maxGramLength, Route* route, uint
 }
 
 // original gram, payload, len, 
+// 182 bytes 
 uint16_t writeReply(uint8_t* ogGram, uint8_t* gram, uint16_t maxGramLength, uint8_t* payload, uint16_t payloadLen){
   // 1st up, we can straight copy the 1st 4 bytes, 
   memcpy(gram, ogGram, 4);
   // now find a ptr, 
   uint16_t ptr = 0;
   if(!findPtr(ogGram, &ptr)){
-    OSAP::error("writeReply can't find the pointer...", MEDIUM);
+    OSAP_ERROR("writeReply can't find the pointer...");
     return 0;
   }
   // do we have enough space? it's the minimum of the allowed segsize & stated maxGramLength, 
   maxGramLength = min(maxGramLength, ts_readUint16(ogGram, 2));
   if(ptr + 1 + payloadLen > maxGramLength){
-    OSAP::error("writeReply asked to write packet that exceeds maxGramLength, bailing", MEDIUM);
+    OSAP_ERROR("writeReply asked to write packet that exceeds maxGramLength, bailing");
     return 0;
   }
   // write the payload in, apres-pointer, 
@@ -184,7 +188,7 @@ uint16_t writeReply(uint8_t* ogGram, uint8_t* gram, uint16_t maxGramLength, uint
         gram[wptr ++] = ogGram[rptr + 1];
         break;
       default:
-        OSAP::error("writeReply fails to reverse this packet, bailing", MEDIUM);
+        OSAP_ERROR("writeReply fails to reverse this packet, bailing");
         return 0;
     }
   } // end thru-loop, 

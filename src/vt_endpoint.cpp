@@ -33,10 +33,14 @@ EndpointRoute::~EndpointRoute(void){
 
 // base constructor, 
 Endpoint::Endpoint(
-  Vertex* _parent, String _name, 
+  Vertex* _parent, const char* _name, 
   EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len),
   boolean (*_beforeQuery)(void)
-) : Vertex(_parent, "ep_" + _name) {
+) : Vertex(_parent) {
+  // see vertex.cpp -> vport constructor for notes on this 
+  strcpy(name, "ep_");
+  strncat(name, _name, VT_NAME_MAX_LEN - 4);
+  name[VT_NAME_MAX_LEN - 1] = '\0';
   // type, 
 	type = VT_TYPE_ENDPOINT;
   // set callbacks,
@@ -58,7 +62,10 @@ boolean beforeQueryDefault(void){
 
 void Endpoint::write(uint8_t* _data, uint16_t len){
   // copy data in,
-  if(len > VT_SLOTSIZE) return; // no lol 
+  if(len > ENDPOINT_MAX_DATA_SIZE){
+    OSAP_ERROR("attempt to write too-large data to endpoint");
+    return; // no lol 
+  }
   memcpy(data, _data, len);
   dataLen = len;
   // set route freshness 
@@ -71,7 +78,7 @@ void Endpoint::write(uint8_t* _data, uint16_t len){
   }
 }
 
-// for floats, booleans... 
+// for floats, booleans... if we do quick-
 uint8_t _quickStash[4];
 
 void Endpoint::write(boolean _data){
@@ -83,9 +90,11 @@ void Endpoint::write(boolean _data){
 uint8_t Endpoint::addRoute(Route* _route, uint8_t _mode, uint32_t _timeoutLength){
 	// guard against more-than-allowed routes 
 	if(numRoutes >= ENDPOINT_MAX_ROUTES) {
-    OSAP::error("route add is oob", MEDIUM); 
+    OSAP_ERROR("route add is oob"); 
     return 0;
 	}
+  // it's one | the other, and it should be an ENUM
+  if(_mode != EP_ROUTEMODE_ACKED && _mode != EP_ROUTEMODE_ACKLESS){ _mode = EP_ROUTEMODE_ACKLESS; }
   // build, stash, increment 
   uint8_t indice = numRoutes;
   routes[numRoutes ++] = new EndpointRoute(_route, _mode, _timeoutLength);
@@ -107,7 +116,7 @@ void Endpoint::loop(void){
   // ok we are doing a time-based dispatch... 
   unsigned long now = millis();
   EndpointRoute* routeTxList[ENDPOINT_MAX_ROUTES];
-  uint8_t numTxRoutes = 0;
+  uint8_t routeTxListLen = 0;
   // stack fresh routes, and also transition timeouts / etc, 
   // we make & sort this list, but set it up round-robin, since many 
   // cases will see the same TTL & same write-to time, meaning routes that 
@@ -117,10 +126,11 @@ void Endpoint::loop(void){
     r ++; if(r >= numRoutes) r = 0;
     switch(routes[r]->state){
       case EP_TX_FRESH:
-        routeTxList[numTxRoutes ++] = routes[r];
+        routeTxList[routeTxListLen ++] = routes[r];
         break;
+      // don't compile ack-related kit if we are trying to be tiny 
       case EP_TX_AWAITING_ACK:
-				// check timeout & transition to idle state 
+				// check timeout & transition to idle state on ack-timeout, 
         if(routes[r]->lastTxTime + routes[r]->timeoutLength > now){
           routes[r]->state = EP_TX_IDLE;
         }
@@ -138,13 +148,15 @@ void Endpoint::loop(void){
   // now, would do a sort... they're all fresh at the same time, so lowest TTL would win,
   // this one we would want to be stable, meaning original order is preserved in 
   // otherwise identical cases, since we round-robin fairness as well as TTL / TTD  
-  #warning no sort algo yet, 
+  #warning no sort algo yet, for endpoints-outgoing, but should be earliest-deadline 
   // serve 'em... these are all EP_TX_FRESH state, 
-  for(r = 0; r < numTxRoutes; r ++){
-    if(stackEmptySlot(this, VT_STACK_ORIGIN)){
+  for(r = 0; r < routeTxListLen; r ++){
+    // can we pull a memory chunk to occupy ?
+    VPacket* pck = stackRequest(this);
+    if(pck != nullptr){
       // make sure we'll have enough space...
-      if(dataLen + routeTxList[r]->route->pathLen + 3 >= VT_SLOTSIZE){
-        OSAP::error("attempting to write oversized datagram at " + name, MEDIUM);
+      if(dataLen + routeTxList[r]->route->pathLen + 3 >= VT_VPACKET_MAX_SIZE){
+        OSAP_ERROR("attempting to write oversized datagram at " + String(name));
         routeTxList[r]->state = EP_TX_IDLE;
         continue;
       }
@@ -163,13 +175,13 @@ void Endpoint::loop(void){
       memcpy(&(payload[wptr]), data, dataLen);
       wptr += dataLen;
       // write the packet, 
-      uint16_t len = writeDatagram(datagram, VT_SLOTSIZE, routeTxList[r]->route, payload, wptr);
+      uint16_t len = writeDatagram(datagram, VT_VPACKET_MAX_SIZE, routeTxList[r]->route, payload, wptr);
       // tx time is now, and state is awaiting ack, 
       routeTxList[r]->lastTxTime = now;
       routeTxList[r]->state = EP_TX_AWAITING_ACK;
       lastRouteServiced = r;
       // ingest it...
-      stackLoadSlot(this, VT_STACK_ORIGIN, datagram, len);
+      stackLoadPacket(pck, datagram, len);
     } else {
       // stack has no more empty slots, bail from the loop, 
       break;
@@ -179,34 +191,35 @@ void Endpoint::loop(void){
 
 // -------------------------------------------------------- Destination Handler  
 
-void Endpoint::destHandler(stackItem* item, uint16_t ptr){
-  // item->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == EP_KEY, ptr + 3 = ID (if ack req.) 
-  switch(item->data[ptr + 2]){
+// this is a big flash memory offender, at 780 bytes 
+void Endpoint::destHandler(VPacket* pck, uint16_t ptr){
+  // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == EP_KEY, ptr + 3 = ID (if ack req.) 
+  switch(pck->data[ptr + 2]){
     case EP_SS_ACKLESS:
       { // singlesegment transmit-to-us, w/o ack, 
-        uint8_t* rxData = &(item->data[ptr + 3]); uint16_t rxLen = item->len - (ptr + 4);
+        uint8_t* rxData = &(pck->data[ptr + 3]); uint16_t rxLen = pck->len - (ptr + 4);
         EP_ONDATA_RESPONSES resp = onData_cb(rxData, rxLen);
         switch(resp){
           case EP_ONDATA_WAIT:    // in a wait case, we no-op / escape, it comes back around 
-            item->arrivalTime = millis();
+            pck->arrivalTime = millis();
             break;
           case EP_ONDATA_ACCEPT:  // here we copy it in, but carry on to the reject term to delete og gram
             memcpy(data, rxData, rxLen);
             dataLen = rxLen;
-          case EP_ONDATA_REJECT:  // here we simply reject it, 
-            stackClearSlot(item);
+          case EP_ONDATA_REJECT:  // this clears for *this* and the above
+            stackRelease(pck);
             break;
         } // end resp-handler, 
       }
       break;
     case EP_SS_ACKED:
       { // singlesegment transmit-to-us, w/ ack, 
-        uint8_t id = item->data[ptr + 3];
-        uint8_t* rxData = &(item->data[ptr + 4]); uint16_t rxLen = item->len - (ptr + 5);
+        uint8_t id = pck->data[ptr + 3];
+        uint8_t* rxData = &(pck->data[ptr + 4]); uint16_t rxLen = pck->len - (ptr + 5);
         EP_ONDATA_RESPONSES resp = onData_cb(rxData, rxLen);
           switch(resp){
             case EP_ONDATA_WAIT: // this is a little danger-danger, 
-              item->arrivalTime = millis();
+              pck->arrivalTime = millis();
               break;
             case EP_ONDATA_ACCEPT:
               memcpy(data, rxData, rxLen);
@@ -216,9 +229,9 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
               payload[0] = PK_DEST;
               payload[1] = EP_SS_ACK;
               payload[2] = id;
-              uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, 3);
-              stackClearSlot(item);
-              stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+              uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, 3);
+              // ack reloads-in-place, 
+              stackLoadPacket(pck, datagram, len);
               break;
           }
       }
@@ -230,17 +243,18 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
         // request for our data, 
         payload[0] = PK_DEST;
         payload[1] = EP_QUERY_RESP;
-        payload[2] = item->data[ptr + 3];
+        payload[2] = pck->data[ptr + 3];
         memcpy(&(payload[3]), data, dataLen);
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, dataLen + 3);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, dataLen + 3);
+        // query reloads-in-place
+        stackLoadPacket(pck, datagram, len);
       }
       break;
+    // for example, just the below statement is 68 bytes... seems wild 
     case EP_SS_ACK:
       // acks to us, 
       for(uint8_t r = 0; r < numRoutes; r ++){
-        if(item->data[ptr + 3] == routes[r]->ackId){
+        if(pck->data[ptr + 3] == routes[r]->ackId){
           switch(routes[r]->state){
             case EP_TX_AWAITING_ACK:
               routes[r]->state = EP_TX_IDLE;
@@ -255,15 +269,16 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
               goto ackEnd;
           } // end switch 
         }
-      } // end for-each route, if we've reached this point, still dump it;
+      } // end for-each route, 
+      // if we've reached this point, still dump it;
       ackEnd:
-      stackClearSlot(item);
+      stackRelease(pck);
       break;
     case EP_ROUTE_QUERY_REQ:
       // MVC request for a route of ours, 
       {
-        uint8_t id = item->data[ptr + 3];
-        uint16_t r = ts_readUint16(item->data, ptr + 4);
+        uint8_t id = pck->data[ptr + 3];
+        uint16_t r = ts_readUint16(pck->data, ptr + 4);
         uint16_t wptr = 0;
         // dest, key, id... mode, 
         payload[wptr ++] = PK_DEST;
@@ -281,16 +296,15 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           payload[wptr ++] = 0; // no-route-here, 
         }
         // clear request, write reply in place, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, wptr);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+        stackLoadPacket(pck, datagram, len);
       }
       break;
     case EP_ROUTE_SET_REQ:
       // MVC request to set a new route, 
       {
         // get an ID, 
-        uint8_t id = item->data[ptr + 3];
+        uint8_t id = pck->data[ptr + 3];
         // prep a response, 
         payload[0] = PK_DEST;
         payload[1] = EP_ROUTE_SET_RES;
@@ -299,12 +313,12 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           // tell call-er it should work, 
           payload[3] = 1;
           // gather & set route, 
-          uint8_t mode = item->data[ptr + 4];
-          uint16_t ttl = ts_readUint16(item->data, ptr + 5);
-          uint16_t segSize = ts_readUint16(item->data, ptr + 7);
-          uint8_t* path = &(item->data[ptr + 9]);
-          uint16_t pathLen = item->len - (ptr + 10);
-          OSAP::debug("adding path... w/ ttl " + String(ttl) + " ss " + String(segSize) + " pathLen " + String(pathLen));
+          uint8_t mode = pck->data[ptr + 4];
+          uint16_t ttl = ts_readUint16(pck->data, ptr + 5);
+          uint16_t segSize = ts_readUint16(pck->data, ptr + 7);
+          uint8_t* path = &(pck->data[ptr + 9]);
+          uint16_t pathLen = pck->len - (ptr + 10);
+          // OSAP_DEBUG("endpoint " + String(name) + " adding path... w/ ttl " + String(ttl) + " ss " + String(segSize) + " pathLen " + String(pathLen));
           uint8_t routeIndice = addRoute(new Route(path, pathLen, ttl, segSize), mode);
           payload[4] = routeIndice;
         } else {
@@ -313,17 +327,16 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           payload[4] = 0;
         }
         // either case, write the reply, 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, 5);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, 5);
+        stackLoadPacket(pck, datagram, len);
       }
       break;
     case EP_ROUTE_RM_REQ:
       // MVC request to rm a route... 
       {
         // msg id, & indice to remove, 
-        uint8_t id = item->data[ptr + 3];
-        uint8_t r = item->data[ptr + 4];
+        uint8_t id = pck->data[ptr + 3];
+        uint8_t r = pck->data[ptr + 4];
         // prep a response, 
         payload[0] = PK_DEST;
         payload[1] = EP_ROUTE_RM_RES;
@@ -345,14 +358,13 @@ void Endpoint::destHandler(stackItem* item, uint16_t ptr){
           payload[3] = 0;
         }
         // either case, write reply 
-        uint16_t len = writeReply(item->data, datagram, VT_SLOTSIZE, payload, 4);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, 4);
+        stackLoadPacket(pck, datagram, len);
       }
       break;
     default:
-      OSAP::error("endpoint rx msg w/ unrecognized endpoint key " + String(item->data[ptr + 2]) + " bailing", MINOR);
-      stackClearSlot(item);
+      OSAP_ERROR("endpoint rx msg w/ unrecognized endpoint key " + String(pck->data[ptr + 2]) + " bailing");
+      stackRelease(pck);
       break;
   } // end switch... 
 }

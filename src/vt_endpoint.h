@@ -48,14 +48,16 @@ boolean beforeQueryDefault(void);
 class Endpoint : public Vertex {
   public:
     // local data store & length, 
-    uint8_t data[VT_SLOTSIZE];
+    // we *should* have users pass us ptrs to these, and... 
+    // tell us when they are new ? or something ? 
+    uint8_t data[ENDPOINT_MAX_DATA_SIZE];
     uint16_t dataLen = 0; 
     // callbacks: on new data & before a query is written out 
     EP_ONDATA_RESPONSES (*onData_cb)(uint8_t* data, uint16_t len) = onDataDefault;
     boolean (*beforeQuery_cb)(void) = beforeQueryDefault;
     // we override vertex loop, 
     void loop(void) override;
-    void destHandler(stackItem* item, uint16_t ptr) override;
+    void destHandler(VPacket* pck, uint16_t ptr) override;
     // methods,
     void write(uint8_t* _data, uint16_t len);
     // ... for boolean types, do:
@@ -69,7 +71,8 @@ class Endpoint : public Vertex {
     uint8_t nextAckID = 77;
     // base constructor, 
     Endpoint(   
-      Vertex* _parent, String _name, 
+      Vertex* _parent, 
+      const char* _name, 
       EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len),
       boolean (*_beforeQuery)(void)
     );
@@ -77,21 +80,24 @@ class Endpoint : public Vertex {
     // here: https://en.cppreference.com/w/cpp/language/constructor 
     // onData only, 
     Endpoint(   
-      Vertex* _parent, String _name,
+      Vertex* _parent, 
+      const char* _name,
       EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len)
     ) : Endpoint ( 
       _parent, _name, _onData, nullptr
     ){};
     // beforeQuery only, 
     Endpoint(   
-      Vertex* _parent, String _name, 
+      Vertex* _parent, 
+      const char* _name, 
       boolean (*_beforeQuery)(void)
     ) : Endpoint (
       _parent, _name, nullptr, _beforeQuery
     ){};
     // name only, 
     Endpoint(   
-      Vertex* _parent, String _name
+      Vertex* _parent, 
+      const char* _name
     ) : Endpoint (
       _parent, _name, nullptr, nullptr
     ){};

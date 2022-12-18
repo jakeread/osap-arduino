@@ -17,9 +17,12 @@ no warranty is provided, and users accept all liability.
 
 #include "vertex.h"
 
-// we loop, 
+// we loop, we handle, we're functional (!) 
 void osapLoop(Vertex* root);
-// we handle, 
-void osapItemHandler(stackItem* item);
+void osapPacketHandler(VPacket* pck);
+
+// we have utes 
+void osapPacketHandler(VPacket* pck);
+boolean internalTransport(VPacket* pck, uint16_t ptr);
 
 #endif 
