@@ -152,41 +152,52 @@ VBus::VBus(
   type = VT_TYPE_VBUS;
   vbus = this;
   // vport / vbus really needs some extra... 
-  maxPacketHold = 3;
+  // in fact it would be rad if in high-perf apps we could add a constraint to OSAP 
+  // stack management that it keeps this many (broadcast channels) *free* during operation, 
+  // for exclusive use by the bus-broadcast absorption... 
+  maxPacketHold = 4;
   // these should all init to nullptr, 
   for(uint8_t ch = 0; ch < VBUS_MAX_BROADCAST_CHANNELS; ch ++){
     broadcastChannels[ch] = nullptr;
   }
 }
 
-void VBus::injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastChannel){
-  #ifndef OSAP_IS_MINI
+// this is not in common use, and presents an issue of space-freeness when injesting, 
+// since broadcasts are not typically flow-controlled, there is a possibility having to drop packets here 
+// so, yeah, we're actually going to return true (if OK) and false (if no-injestion possible), 
+// so that bus implementations can hold for a few us / ms and do retries... 
+boolean VBus::injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastChannel){
   // ok so first we want to see if we have anything sub'd to this channel, so
   if(broadcastChannels[broadcastChannel] != nullptr){
     // we have a route, so we want to load this data *as we inject some new path segments* 
     Route* route = broadcastChannels[broadcastChannel];
     // we could definitely do this faster w/o using the stackLoadSlot fn, but we won't do that yet... 
-    // will use the vertex-global datagram stash for that 
     uint16_t ptr = 0; 
-    if(!findPtr(data, &ptr)){ OSAP_ERROR("can't find ptr during broadcast injest"); return; }
+    if(!findPtr(data, &ptr)){ OSAP_ERROR("can't find ptr during broadcast injest"); return true; }
+    // let's see if we can get a packet allocation out here:
+    VPacket* pck = stackRequest(this);
+    // no packet available this turn, return false to *hold* if possible 
+    if(pck == nullptr){ OSAP_ERROR("possible missed available pck during bus broadcast injest"); return false; }
     // packet should look like 
     // ttl, segsize, <prev_instruct>, <bbrd_txAddr>, PTR, <payload>
     // we want to inject the channel's route such that 
     // ttl, segsize, <prev_instruct>, <bbrd_txAddr>, PTR, <ch_route>, <payload>
     // shouldn't actually be too difficult, eh?
     // we do need to guard on lengths, 
-    if(len + route->pathLen > VT_VPACKET_MAX_SIZE){ OSAP_ERROR("datagram + channel route is too large"); return; }
+    if(len + route->pathLen > VT_VPACKET_MAX_SIZE){ OSAP_ERROR("datagram + channel route is too large"); return true; }
     // copy up to PTR: pck[ptr] == PK_PTR, so we want to *include* this byte, having len ptr + 1, 
-    memcpy(datagram, data, ptr + 1);
+    // now we can load straight in to this pck, 
+    memcpy(pck->data, data, ptr + 1);
     // copy in route, but recall that as initialized, route->path[0] == PK_PTR, we don't want to double that up, 
-    memcpy(&(datagram[ptr + 1]), &(route->path[1]), route->pathLen - 1);
+    memcpy(&(pck->data[ptr + 1]), &(route->path[1]), route->pathLen - 1);
     // then the rest of the gram, from just after-the-ptr, to end, 
-    memcpy(&datagram[ptr + 1 + route->pathLen - 1], &(data[ptr + 1]), len - ptr - 1);
+    memcpy(&pck->data[ptr + 1 + route->pathLen - 1], &(data[ptr + 1]), len - ptr - 1);
     // now we can load this in, 
-    stackLoadSlot(this, VT_STACK_ORIGIN, datagram, len + route->pathLen - 1);
-    // aye that's it innit? 
+    stackLoadPacket(pck, len + route->pathLen - 1);
+  } else {
+    // channel is empty, tell our caller they can rm whatever rx'd from their buffers;
+    return true;
   }
-  #endif 
 }
 
 void VBus::setBroadcastChannel(uint8_t channel, Route* route){

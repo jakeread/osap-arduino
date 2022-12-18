@@ -107,8 +107,8 @@ class VBus : public Vertex{
     virtual boolean isOpen(uint8_t rxAddr) = 0;
     // handle things aimed at us, for mvc etc 
     void destHandler(VPacket* pck, uint16_t ptr) override;
-    // busses can read-in to broadcasts,
-    void injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastChannel);
+    // busses can read-in to broadcasts, which is either successful absorption (returning true) or flow-controlled (ret. false)
+    boolean injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadcastChannel);
     // we have also... broadcast channels... these are little route stubs & channel pairs, which we just straight up index, 
     Route* broadcastChannels[VBUS_MAX_BROADCAST_CHANNELS];
     // have to update those... 

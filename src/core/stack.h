@@ -44,6 +44,7 @@ void stackReset(VPacket* stack, uint16_t stackLen);
 // and users can request open items, to write into,
 VPacket* stackRequest(Vertex* vt);
 void stackLoadPacket(VPacket* packet, uint8_t* data, uint16_t dataLen);
+void stackLoadPacket(VPacket* packet, uint16_t dataLen);
 
 // and they can relinquish those:
 void stackRelease(VPacket* packet);

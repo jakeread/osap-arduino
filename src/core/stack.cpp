@@ -76,6 +76,12 @@ VPacket* stackRequest(Vertex* vt){
   }
 }
 
+// pck was copied-in au-manuel, here is marking it's length and "arrival" time 
+void stackLoadPacket(VPacket* packet, uint16_t dataLen){
+  packet->len = dataLen;
+  packet->arrivalTime = millis();
+}
+
 // this... kind of, should be depricated, in exchange for direct-loading, non?
 void stackLoadPacket(VPacket* packet, uint8_t* data, uint16_t dataLen){
   if(dataLen > VT_VPACKET_MAX_SIZE){

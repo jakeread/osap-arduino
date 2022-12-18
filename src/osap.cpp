@@ -129,10 +129,12 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
       payload[wptr ++] = PK_DEST;
       payload[wptr ++] = RT_DBG_RES;
       payload[wptr ++] = pck->data[ptr + 3];
-      // stash high water mark, errormsg count, debugmsgcount 
+      // stash high water mark, errormsg count, debugmsgcount, and our version # - 
       ts_writeUint32(OSAP::loopItemsHighWaterMark, payload, &wptr);
       ts_writeUint32(errorCount, payload, &wptr);
       ts_writeUint32(debugCount, payload, &wptr);
+      ts_writeUint32(OSAP_VERSION_NUM, payload, &wptr);
+      // then one of these strings - latest message - if it was requested... 
       // optionally, a string... I know we switch() then if(), it's uggo, 
       if(pck->data[ptr + 2] == RT_DBG_ERRMSG){
         ts_writeString(latestError, latestErrorLen, payload, &wptr, VT_VPACKET_MAX_SIZE / 2);

@@ -15,6 +15,9 @@ no warranty is provided, and users accept all liability.
 #ifndef OSAP_CONFIG_H_
 #define OSAP_CONFIG_H_
 
+// version is passed around as a uint32_t, read as b0.b1.b2.b3, so 0.0.0.1 == 1, etc, 
+#define OSAP_VERSION_NUM 1
+
 // size of vertex stacks, lenght, then count,
 #define VT_VPACKET_MAX_SIZE 128
 #define VT_NAME_MAX_LEN 31
