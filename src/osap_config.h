@@ -34,7 +34,7 @@ no warranty is provided, and users accept all liability.
 #define VBUS_MAX_BROADCAST_CHANNELS 64 
 
 // micro-sized ? should just rm this entirely, one-size osap... 
-#define OSAP_IS_MINI
+// #define OSAP_IS_MINI
 
 // send debug messages?
 #define OSAP_HAS_DEBUG_MSGS

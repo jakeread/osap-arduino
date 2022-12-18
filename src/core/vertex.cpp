@@ -207,16 +207,15 @@ void VBus::setBroadcastChannel(uint8_t channel, Route* route){
 }
 
 void VBus::destHandler(VPacket* pck, uint16_t ptr){
-  // item->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == the key we're switching on...
+  // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == the key we're switching on...
   switch(pck->data[ptr + 2]){
-    #ifndef OSAP_IS_MINI 
     case VBUS_BROADCAST_MAP_REQ:
       // mvc request a map of our active broadcast channels, this is akin to bus link-state-scope packet
       {
         uint16_t wptr = 0;
         payload[wptr ++] = PK_DEST;
         payload[wptr ++] = VBUS_BROADCAST_MAP_RES;
-        payload[wptr ++] = item->data[ptr + 3];
+        payload[wptr ++] = pck->data[ptr + 3];
         // max length of channels... max 255, same as max endpoint routes (?) 
         // this is maybe an error, consult packet spec (transport layer) for completeness, 
         // time being... rare to have > 255 broadcast channels, 
@@ -236,9 +235,9 @@ void VBus::destHandler(VPacket* pck, uint16_t ptr){
         end:
         wptr ++; // += 1 more, so we write into next, 
         // we're ready to write the reply back, 
-        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+        // it's all packet replacement to me, 
+        stackLoadPacket(pck, datagram, len);
         break;
       }
     case VBUS_BROADCAST_QUERY_REQ:
@@ -247,9 +246,9 @@ void VBus::destHandler(VPacket* pck, uint16_t ptr){
         uint16_t wptr = 0;
         payload[wptr ++] = PK_DEST;
         payload[wptr ++] = VBUS_BROADCAST_QUERY_RES;
-        payload[wptr ++] = item->data[ptr + 3];
+        payload[wptr ++] = pck->data[ptr + 3];
         // the indice of the channel we're looking at, 
-        uint16_t ch = item->data[ptr + 4];
+        uint16_t ch = pck->data[ptr + 4];
         // if the ch exists, 
         if(ch < VBUS_MAX_BROADCAST_CHANNELS && broadcastChannels[ch] != nullptr){
           payload[wptr ++] = 1;
@@ -264,18 +263,17 @@ void VBus::destHandler(VPacket* pck, uint16_t ptr){
           payload[wptr ++] = 0;
         }
         // write reply, 
-        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+        stackLoadPacket(pck, datagram, len);
         break;
       }
     case VBUS_BROADCAST_SET_REQ:
       // mvc requests to set a broadcast channel route 
       {
         // get an ID, 
-        uint8_t id = item->data[ptr + 3];
+        uint8_t id = pck->data[ptr + 3];
         // ch to write into...
-        uint8_t ch = item->data[ptr + 4];
+        uint8_t ch = pck->data[ptr + 4];
         // reply-write-pointer 
         uint16_t wptr = 0;
         // prep a response, 
@@ -290,16 +288,15 @@ void VBus::destHandler(VPacket* pck, uint16_t ptr){
           // should go 
           payload[wptr ++] = 1;          
           if(broadcastChannels[ch] != nullptr) OSAP_DEBUG("overwriting previous broadcast ch at " + String(ch));
-          uint16_t ttl = ts_readUint16(item->data, ptr + 5);
-          uint16_t segSize = ts_readUint16(item->data, ptr + 7);
-          uint8_t* path = &(item->data[ptr + 9]);
-          uint16_t pathLen = item->len - (ptr + 10);
+          uint16_t ttl = ts_readUint16(pck->data, ptr + 5);
+          uint16_t segSize = ts_readUint16(pck->data, ptr + 7);
+          uint8_t* path = &(pck->data[ptr + 9]);
+          uint16_t pathLen = pck->len - (ptr + 10);
           setBroadcastChannel(ch, new Route(path, pathLen, ttl, segSize));
         }
         // in any case, write the reply, 
-        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+        stackLoadPacket(pck, datagram, len);
         break;
       }
     case VBUS_BROADCAST_RM_REQ:
@@ -307,8 +304,8 @@ void VBus::destHandler(VPacket* pck, uint16_t ptr){
       // todo / cleanliness: might be salient to 'write 0' to delete (?) who knows 
       {
         // id & indice to rm 
-        uint8_t id = item->data[ptr + 3];
-        uint8_t ch = item->data[ptr + 4];
+        uint8_t id = pck->data[ptr + 3];
+        uint8_t ch = pck->data[ptr + 4];
         uint16_t wptr = 0;
         // prep res 
         payload[wptr ++] = PK_DEST;
@@ -329,12 +326,10 @@ void VBus::destHandler(VPacket* pck, uint16_t ptr){
           payload[wptr ++] = 0;
         }
         // can send now, 
-        uint16_t len = writeReply(item->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
-        stackClearSlot(item);
-        stackLoadSlot(this, VT_STACK_DESTINATION, datagram, len);
+        uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
+        stackLoadPacket(pck, datagram, len);
         break;
       }
-      #endif 
     default:
       OSAP_ERROR("vbus rx msg w/ unrecognized vbus key " + String(pck->data[ptr + 2]) + " bailing");
       stackRelease(pck);
