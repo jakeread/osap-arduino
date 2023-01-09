@@ -30,11 +30,6 @@ typedef struct VPacket VPacket;
 typedef struct VPort VPort;
 typedef struct VBus VBus;
 
-// default vt fns 
-void vtLoopDefault(Vertex* vt);
-void vtOnOriginStackClearDefault(Vertex* vt, uint8_t slot);
-void vtOnDestinationStackClearDefault(Vertex* vt, uint8_t slot);
-
 // addressable node in the graph ! 
 class Vertex {
   public:

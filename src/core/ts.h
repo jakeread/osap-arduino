@@ -60,6 +60,8 @@ no warranty is provided, and users accept all liability.
 
 #define MVC_INFO_REQ 181
 #define MVC_INFO_RES 182 
+#define MVC_CALL_REQ 183
+#define MVC_CALL_RES 184 
 
 // -------------------------------------------------------- VBus MVC Keys 
 

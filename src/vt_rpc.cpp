@@ -15,20 +15,6 @@ no warranty is provided, and users accept all liability.
 #include "vt_rpc.h"
 #include "osap.h"
 
-// -------------------------------------------------------- Constructor
-
-// RPC<AT, RT>::RPC(
-//   Vertex* _parent, 
-//   const char* _name,
-// ) : Vertex(_parent) {
-//   // appending... 
-//   strcpy(name, "rpc_");
-//   strncat(name, _name, VT_NAME_MAX_LEN - 5);
-//   // type self,
-//   type = VT_TYPE_RPC;
-//   // done for now, 
-// }
-
-// void RPC<AT, RT>::destHandler(VPacket* pck, uint16_t ptr){
-//   stackRelease(pck);
-// }
+uint8_t TypeInterface::getKey(void){
+  return key;
+}
