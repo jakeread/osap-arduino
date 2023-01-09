@@ -1,5 +1,5 @@
 /*
-osap/vertices/endpoint.h
+osap/vt_endpoint.h
 
 network : software interface
 
