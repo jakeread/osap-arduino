@@ -54,7 +54,12 @@ no warranty is provided, and users accept all liability.
 #define RT_DBG_DBGMSG 153
 #define RT_DBG_RES 161
 #define RT_RENAME_REQ 171
-#define RT_RENAME_RES 172 
+#define RT_RENAME_RES 172
+
+// -------------------------------------------------------- RPC Keys 
+
+#define MVC_INFO_REQ 181
+#define MVC_INFO_RES 182 
 
 // -------------------------------------------------------- VBus MVC Keys 
 
