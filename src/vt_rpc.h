@@ -18,15 +18,31 @@ no warranty is provided, and users accept all liability.
 #include "core/vertex.h"
 #include "core/packets.h"
 
+// argtype and return type, 
+template<typename AT, typename RT>
 class RPC : public Vertex {
   public:
     // we for sure need to handle our own paquiats, 
-    void destHandler(VPacket* pck, uint16_t ptr) override;
+    void destHandler(VPacket* pck, uint16_t ptr) override {
+      stackRelease(pck);
+    };
+    // let's stash one of each, mostly just checking I get templates, 
+    AT lastArgs; 
+    RT lastReturn;
     // a constructor...
     RPC(
       Vertex* _parent,
-      const char* _name
-    );
+      const char* _name,
+      AT _argLike,
+      RT _retLike
+    ) : Vertex(_parent){
+      // appending... 
+      strcpy(name, "rpc_");
+      strncat(name, _name, VT_NAME_MAX_LEN - 5);
+      // type self,
+      type = VT_TYPE_RPC;
+      // done for now, 
+    }
 };
 
 #endif 
