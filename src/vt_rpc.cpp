@@ -15,6 +15,6 @@ no warranty is provided, and users accept all liability.
 #include "vt_rpc.h"
 #include "osap.h"
 
-uint8_t TypeInterface::getKey(void){
-  return key;
-}
+// uint8_t TypeInterface::getKey(void){
+//   return key;
+// }

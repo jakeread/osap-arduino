@@ -14,7 +14,7 @@ no warranty is provided, and users accept all liability.
 
 #include "packets.h"
 #include "ts.h"
-#include "osap.h"
+#include "../osap.h"
 
 void writeKeyArgPair(unsigned char* buf, uint16_t ptr, uint8_t key, uint16_t arg){
   buf[ptr] = key | (0b00001111 & (arg >> 8));

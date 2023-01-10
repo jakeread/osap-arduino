@@ -20,7 +20,7 @@ no warranty is provided, and users accept all liability.
 #include "routes.h"
 #include "stack.h"
 // vertex config is build dependent, define in <folder-containing-osape>/osapConfig.h 
-#include "./osap_config.h" 
+#include "../osap_config.h" 
 
 // we have the vertex type, 
 // since it contains ptrs to others of its type, we fwd declare the type...

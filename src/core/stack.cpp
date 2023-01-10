@@ -14,7 +14,7 @@ no warranty is provided, and users accept all liability.
 
 #include "stack.h"
 #include "vertex.h"
-#include "osap.h"
+#include "../osap.h"
 
 // local state !
 

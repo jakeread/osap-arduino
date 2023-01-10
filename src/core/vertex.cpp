@@ -14,7 +14,7 @@ no warranty is provided, and users accept all liability.
 
 #include "vertex.h"
 #include "stack.h"
-#include "osap.h"
+#include "../osap.h"
 #include "packets.h"
 
 // ---------------------------------------------- Temporary Stash 

@@ -14,7 +14,7 @@ no warranty is provided, and users accept all liability.
 
 #include "loop.h"
 #include "packets.h"
-#include "osap.h"
+#include "../osap.h"
 
 #define TEMP_MAX_PCK_PER_LOOP 16
 VPacket* packetsToHandle[TEMP_MAX_PCK_PER_LOOP];
