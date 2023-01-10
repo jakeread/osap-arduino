@@ -40,6 +40,19 @@ class TypeThing<float> : public TypeInterface {
     uint8_t key = TK_FLOAT32;
 };
 
+// -------------------------------------------------------- RPC Interface ?
+
+class RPCInterface {
+  public: 
+    size_t writeArgKeys(uint8_t* dest);
+    size_t writeReturnKeys(uint8_t* dest);
+    virtual size_t call(uint8_t* argSrc, uint8_t* retDest);
+}
+
+class RPCInterfaceTyped : public RPCInterface {
+  
+}
+
 // template <>
 // class Likeness <int16_t> {
 //   public: 
@@ -69,11 +82,8 @@ class TypeThing<float> : public TypeInterface {
 //     }
 // }
 
-// argtype and return type, 
-template<typename AT, typename RT>
 class RPC : public Vertex {
   public:
-    TypeThing<AT> atTypeThing;
     // we for sure need to handle our own paquiats, 
     void destHandler(VPacket* pck, uint16_t ptr) override {
       // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == EP_KEY, ptr + 3 = ID (if ack req.) 
@@ -105,7 +115,6 @@ class RPC : public Vertex {
             payload[wptr ++] = MVC_INFO_RES;
             payload[wptr ++] = id;
             // we have to... call this thing, we do it via this interface:
-            HERE // is the place-of-work: we need a function wrapper that loads 
             // into this class: each RPC-vertex should have one rpcWrapper, 
             // we should also be able to do i.e. rpcWrapper.getArgTypeKey(), etc... 
             wptr += rpcWrapper.call(&(pck->data[ptr + 4]), &(payload[wptr]))
@@ -119,9 +128,6 @@ class RPC : public Vertex {
           stackRelease(pck);
       } // end switch 
     };
-    // let's stash one of each, mostly just checking I get templates, 
-    AT lastArgs; 
-    RT lastReturn;
     // a constructor...
     RPC(
       Vertex* _parent,

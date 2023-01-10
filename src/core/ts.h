@@ -58,10 +58,10 @@ no warranty is provided, and users accept all liability.
 
 // -------------------------------------------------------- RPC Keys 
 
-#define MVC_INFO_REQ 181
-#define MVC_INFO_RES 182 
-#define MVC_CALL_REQ 183
-#define MVC_CALL_RES 184 
+#define RPC_INFO_REQ 181
+#define RPC_INFO_RES 182 
+#define RPC_CALL_REQ 183
+#define RPC_CALL_RES 184 
 
 // -------------------------------------------------------- VBus MVC Keys 
 
