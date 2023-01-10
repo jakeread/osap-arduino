@@ -92,7 +92,6 @@ no warranty is provided, and users accept all liability.
 #define TK_UINT64   10
 #define TK_INT64    11
 
-#define TK_FLOAT16  24
 #define TK_FLOAT32  26
 #define TK_FLOAT64  28
 

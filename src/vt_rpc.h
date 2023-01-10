@@ -37,8 +37,8 @@ class RPCVertex : public Vertex {
     // we stash a function pointer, to call, 
     AT (*funcPtr)(RT returnVal) = nullptr;
     // these collect keys for us, 
-    TypeKey<AT> typeKeyAT;
-    TypeKey<RT> typeKeyRT;
+    // TypeKey<AT> typeKeyAT;
+    // TypeKey<RT> typeKeyRT;
     // we for sure need to handle our own paquiats, 
     void destHandler(VPacket* pck, uint16_t ptr) override {
       // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == EP_KEY, ptr + 3 = ID (if ack req.) 
@@ -53,9 +53,9 @@ class RPCVertex : public Vertex {
             payload[wptr ++] = id;
             // rpcWrap.serializeInfo(payload);
             // let's just write in sizeof our types?
-            payload[wptr ++] = typeKeyAT.get();
+            payload[wptr ++] = getTypeKey<AT>();//typeKeyAT.get();
             ts_writeInt16(sizeof(AT), payload, &wptr);
-            payload[wptr ++] = typeKeyRT.get();
+            payload[wptr ++] = getTypeKey<RT>(); //typeKeyRT.get();
             ts_writeInt16(sizeof(RT), payload, &wptr);
             uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
             stackLoadPacket(pck, datagram, len);
@@ -67,12 +67,18 @@ class RPCVertex : public Vertex {
             uint8_t id = pck->data[ptr + 3];
             uint16_t wptr = 0;
             payload[wptr ++] = PK_DEST;
-            payload[wptr ++] = RPC_INFO_RES;
+            payload[wptr ++] = RPC_CALL_RES;
             payload[wptr ++] = id;
+            // we should actually be able to do this inline:
+            // uuh, memcpy-in and memcpy-out, I suppose (?) ? 
+            AT arg; // = reinterpret_cast<AT>(((void*)(payload[wptr]))); // ?
+            memcpy((void*)(&arg), &(pck->data[ptr + 4]), sizeof(AT));
+            OSAP::debug("got arg as " + String(arg));
+            OSAP::debug("with b0 as " + String(pck->data[ptr + 4]));
             // we have to... call this thing, we do it via this interface:
             // into this class: each RPC-vertex should have one rpcWrapper, 
             // we should also be able to do i.e. rpcWrapper.getArgTypeKey(), etc... 
-            #warning was here 
+            #warning call-function was here 
             // wptr += rpcWrapper.call(&(pck->data[ptr + 4]), &(payload[wptr]))
             // then ship it, non?
             uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
