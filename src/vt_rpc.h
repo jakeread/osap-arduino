@@ -21,21 +21,12 @@ no warranty is provided, and users accept all liability.
 #include "core/ts.h"
 #include "core/ttypes.h"
 
-// the below was ~ here to learn about 
-// template <typename AT, typename RT>
-// class RPC {
-//   public:
-//     AT (*funcPtr)(RT returnVal) = nullptr;
-//     RPC(AT (*_funcPtr)(RT returnVal)){
-//       funcPtr = _funcPtr;
-//     }
-// };
-
-template <typename AT, typename RT>
+// with return type, argument type... 
+template <typename RT, typename AT>
 class RPCVertex : public Vertex {
   public:
     // we stash a function pointer, to call, 
-    AT (*funcPtr)(RT returnVal) = nullptr;
+    RT (*funcPtr)(AT argVal) = nullptr;
     // these collect keys for us, 
     // TypeKey<AT> typeKeyAT;
     // TypeKey<RT> typeKeyRT;
@@ -74,13 +65,13 @@ class RPCVertex : public Vertex {
             AT arg; // = reinterpret_cast<AT>(((void*)(payload[wptr]))); // ?
             memcpy((void*)(&arg), &(pck->data[ptr + 4]), sizeof(AT));
             OSAP::debug("got arg as " + String(arg));
-            OSAP::debug("with b0 as " + String(pck->data[ptr + 4]));
-            // we have to... call this thing, we do it via this interface:
-            // into this class: each RPC-vertex should have one rpcWrapper, 
-            // we should also be able to do i.e. rpcWrapper.getArgTypeKey(), etc... 
-            #warning call-function was here 
-            // wptr += rpcWrapper.call(&(pck->data[ptr + 4]), &(payload[wptr]))
-            // then ship it, non?
+            // call it, getting a return type...
+            RT ret = funcPtr(arg);
+            OSAP::debug("got return as " + String(ret));
+            // and let's write that back ? 
+            memcpy(&(payload[wptr]), (void*)(&ret), sizeof(RT));
+            wptr += sizeof(RT);
+            // aaand ship it ?
             uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
             stackLoadPacket(pck, datagram, len);
           }
@@ -94,7 +85,7 @@ class RPCVertex : public Vertex {
     RPCVertex(
       Vertex* _parent,
       const char* _name,
-      AT (*_funcPtr)(RT _returnVal)
+      RT (*_funcPtr)(AT _argVal)
     ) : Vertex(_parent){
       // appending... 
       strcpy(name, "rpc_");
