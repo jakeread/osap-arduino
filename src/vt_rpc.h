@@ -26,10 +26,11 @@ template <typename RT, typename AT>
 class RPCVertex : public Vertex {
   public:
     // we stash a function pointer, to call, 
+    // this... should still work as before ?
     RT (*funcPtr)(AT argVal) = nullptr;
-    // these collect keys for us, 
-    // TypeKey<AT> typeKeyAT;
-    // TypeKey<RT> typeKeyRT;
+    // we build ourselves one of each, for the utes (!) 
+    AT argThing;
+    RT retThing;
     // we for sure need to handle our own paquiats, 
     void destHandler(VPacket* pck, uint16_t ptr) override {
       // pck->data[ptr] == PK_PTR, ptr + 1 == PK_DEST, ptr + 2 == EP_KEY, ptr + 3 = ID (if ack req.) 
@@ -44,10 +45,12 @@ class RPCVertex : public Vertex {
             payload[wptr ++] = id;
             // rpcWrap.serializeInfo(payload);
             // let's just write in sizeof our types?
-            payload[wptr ++] = getTypeKey<AT>();//typeKeyAT.get();
-            ts_writeInt16(sizeof(AT), payload, &wptr);
-            payload[wptr ++] = getTypeKey<RT>(); //typeKeyRT.get();
-            ts_writeInt16(sizeof(RT), payload, &wptr);
+            payload[wptr ++] = argThing.typeKey; // getTypeKey<AT>();//typeKeyAT.get();
+            ts_writeUint16(argThing.len, payload, &wptr);
+            ts_writeUint16(argThing.byteSize, payload, &wptr);
+            payload[wptr ++] = retThing.typeKey; // getTypeKey<RT>(); //typeKeyRT.get();
+            ts_writeUint16(retThing.len, payload, &wptr);
+            ts_writeUint16(retThing.byteSize, payload, &wptr);
             uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
             stackLoadPacket(pck, datagram, len);
           }
@@ -61,16 +64,14 @@ class RPCVertex : public Vertex {
             payload[wptr ++] = RPC_CALL_RES;
             payload[wptr ++] = id;
             // we should actually be able to do this inline:
-            // uuh, memcpy-in and memcpy-out, I suppose (?) ? 
-            AT arg; // = reinterpret_cast<AT>(((void*)(payload[wptr]))); // ?
-            memcpy((void*)(&arg), &(pck->data[ptr + 4]), sizeof(AT));
-            OSAP::debug("got arg as " + String(arg));
-            // call it, getting a return type...
-            RT ret = funcPtr(arg);
-            OSAP::debug("got return as " + String(ret));
-            // and let's write that back ? 
-            memcpy(&(payload[wptr]), (void*)(&ret), sizeof(RT));
-            wptr += sizeof(RT);
+            // we can call w/ our argThing, and stuff into our retThing, I think ? 
+            memcpy((void*)(&argThing.val), &(pck->data[ptr + 4]), argThing.byteSize);
+            // we should make a new return object though, otherwise we are memory leaking I think
+            RT ret = funcPtr(argThing);
+            // OSAP::debug("got return as " + String(ret));
+            // // and let's write that back ? 
+            memcpy(&(payload[wptr]), (void*)(&(ret.val)), ret.byteSize);
+            wptr += ret.byteSize;
             // aaand ship it ?
             uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
             stackLoadPacket(pck, datagram, len);
@@ -111,10 +112,10 @@ class RPCVertex : public Vertex {
 // };
 
 // template <typename T>
-// class TypeThing : public TypeInterface {
+// class TT : public TypeInterface {
 // };
 // template<>
-// class TypeThing<float> : public TypeInterface {
+// class TT<float> : public TypeInterface {
 //   public:
 //     uint8_t key = TK_FLOAT32;
 // };
@@ -140,7 +141,7 @@ class RPCVertex : public Vertex {
 
 // // could just template this,
 // // then specialize the serialize & deserialize classes 
-// class TypeThing_UInt16 {
+// class TT_UInt16 {
 //   public:
 //     uint8_t key = TK_UINT16;
 //     uint16_t stash = 0;

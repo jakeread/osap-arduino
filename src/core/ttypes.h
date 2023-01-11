@@ -71,4 +71,37 @@ uint8_t getTypeKey<double>(void){
   return TK_FLOAT64;
 }
 
+// ------------------------------------ TTs
+
+template<typename T, unsigned length>
+class TTS { //} : public TypeInterface {
+  public:
+    T val[length];
+    size_t len = length;
+    // stats, 
+    uint8_t typeKey = getTypeKey<T>();
+    size_t byteSize = sizeof(T) * length;
+};
+
+template<typename T>
+class TT {
+  public:
+    T val;
+    size_t len = 1;
+    uint8_t typeKey = getTypeKey<T>();
+    size_t byteSize = sizeof(T);
+};
+
+// ------------------------------------ Listicles 
+
+// template<typename T, unsigned length>
+// struct arr{
+//   size_t len = length;        // in #-of-items, 
+//   T vals[length];             // the data, 
+//   uint8_t typeKey = getTypeKey<T>();  // looks like this works OK ?
+//   // uint8_t getType(){       // to key out, use existing... 
+//   //   return getTypeKey<T>();
+//   // };
+// };
+
 #endif 
