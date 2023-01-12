@@ -73,8 +73,9 @@ uint8_t getTypeKey<double>(void){
 
 // ------------------------------------ TTs
 
+// it's an array, with key & length... 
 template<typename T, unsigned length>
-class TTS { //} : public TypeInterface {
+class Array {
   public:
     T val[length];
     size_t len = length;
@@ -83,25 +84,37 @@ class TTS { //} : public TypeInterface {
     size_t byteSize = sizeof(T) * length;
 };
 
+// default typething 
 template<typename T>
-class TT {
+class TT { 
   public:
     T val;
     size_t len = 1;
     uint8_t typeKey = getTypeKey<T>();
     size_t byteSize = sizeof(T);
 };
+template<>  // thing of thing (?) 
+template<typename T, unsigned length>
+class TT<Array<T, length>> {
+  public: 
+    T val[length];
+};
 
-// ------------------------------------ Listicles 
+// // default typething 
+// template<typename T>
+// class TT { 
+//   public:
+//     T val;
+//     size_t len = 1;
+//     uint8_t typeKey = getTypeKey<T>();
+//     size_t byteSize = sizeof(T);
+// };
 
-// template<typename T, unsigned length>
-// struct arr{
-//   size_t len = length;        // in #-of-items, 
-//   T vals[length];             // the data, 
-//   uint8_t typeKey = getTypeKey<T>();  // looks like this works OK ?
-//   // uint8_t getType(){       // to key out, use existing... 
-//   //   return getTypeKey<T>();
-//   // };
+// // template of the template,
+// template<template <typename L, unsigned length> class Arr = Array>
+// class TA{
+//   public: 
+//     uint16_t val[12];
 // };
 
 #endif 
