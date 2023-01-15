@@ -16,7 +16,7 @@ no warranty is provided, and users accept all liability.
 #define STACK_H_
 
 #include <Arduino.h>
-#include "../osap_config.h" 
+#include "../osap_config.h"
 
 // https://stackoverflow.com/questions/1813991/c-structure-with-pointer-to-self
 class Vertex;

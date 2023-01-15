@@ -18,7 +18,7 @@ is; no warranty is provided, and users accept all liability.
 
 VPort_ArduinoSerial::VPort_ArduinoSerial( Vertex* _parent, const char* _name, Uart* _uart
 ) : VPort ( _parent, _name ){
-  stream = _uart; // should convert Uart* to Stream*, as Uart inherits stream 
+  stream = _uart; // should convert Uart* to Stream*, as Uart inherits stream
   uart = _uart;
   // additionally, give ourselves more stack allocation:
   maxPacketHold = 4;

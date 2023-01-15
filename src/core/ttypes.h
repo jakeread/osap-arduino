@@ -17,63 +17,63 @@ no warranty is provided, and users accept all liability.
 #ifndef TTYPES_H_
 #define TTYPES_H_
 
-// ------------------------------------ Key Generators 
+// ------------------------------------ Key Generators
 
-// we can support ~ some subset of types to start, 
-// and can throw runtime errors (?) by looking for type-key-zeroes 
-// to alert users of bad / unsupported types ? or sth 
+// we can support ~ some subset of types to start,
+// and can throw runtime errors (?) by looking for type-key-zeroes
+// to alert users of bad / unsupported types ? or sth
 template<typename T>
 uint8_t _getTypeKey(void){
   return 0;
 }
-template<> inline                     // boolean 
+template<> inline                     // boolean
 uint8_t _getTypeKey<boolean>(void){
   return TK_BOOL;
 }
-template<> inline                     // uints / ints 
+template<> inline                     // uints / ints
 uint8_t _getTypeKey<uint8_t>(void){
   return TK_UINT8;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<int8_t>(void){
   return TK_INT8;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<uint16_t>(void){
   return TK_UINT16;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<int16_t>(void){
   return TK_INT16;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<uint32_t>(void){
   return TK_UINT32;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<int32_t>(void){
   return TK_INT32;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<uint64_t>(void){
   return TK_UINT64;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<int64_t>(void){
   return TK_INT64;
 }
-template<> inline                   // floats 
+template<> inline                   // floats
 uint8_t _getTypeKey<float>(void){
   return TK_FLOAT32;
 }
-template<> inline 
+template<> inline
 uint8_t _getTypeKey<double>(void){
   return TK_FLOAT64;
 }
 
 // ------------------------------------ TTs
 
-// it's an array, with key & length... 
+// it's an array, with key & length...
 template<typename T, unsigned length>
 class Array {
   public:
@@ -83,14 +83,14 @@ class Array {
 
 // type helpers
 template<typename T>                    // based on "raw" type
-class TypeHelper { 
+class TypeHelper {
   public:
-    // getters / setters of "actual" 
+    // getters / setters of "actual"
     T getUnderlying(void){
       return underlying;
     };
     void setUnderlying(T val){
-      // we can just str8 up set this, since it's ~ a short / standard type 
+      // we can just str8 up set this, since it's ~ a short / standard type
       underlying = val;
     };
     // underyling-to-packet, write-pointer
@@ -103,17 +103,17 @@ class TypeHelper {
       memcpy(&underlying, src, sizeof(T));
       (*rptr) += sizeof(T);
     };
-    // reporting utes 
+    // reporting utes
     size_t getLen(void) { return 1; };
     size_t getByteSize(void) { return sizeof(T); };
     uint8_t getTypeKey(void) { return _getTypeKey<T>(); };
   private:
-    T underlying; // the actual business, 
+    T underlying; // the actual business,
 };
 template<>                              // specializations
-template<typename T, unsigned length>   // based on an array (?) 
+template<typename T, unsigned length>   // based on an array (?)
 class TypeHelper<Array<T, length>> {
-  public: 
+  public:
     Array<T, length> getUnderlying(void){
       return underlying;
     };
@@ -138,4 +138,4 @@ class TypeHelper<Array<T, length>> {
     Array<T, length> underlying;
 };
 
-#endif 
+#endif

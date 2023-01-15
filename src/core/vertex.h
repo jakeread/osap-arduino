@@ -19,8 +19,8 @@ no warranty is provided, and users accept all liability.
 #include "ts.h"
 #include "routes.h"
 #include "stack.h"
-// vertex config is build dependent, define in <folder-containing-osape>/osapConfig.h 
-#include "../osap_config.h" 
+// vertex config is build dependent, define in <folder-containing-osape>/osapConfig.h
+#include "../osap_config.h"
 
 // we have the vertex type,
 // since it contains ptrs to others of its type, we fwd declare the type...
@@ -30,7 +30,7 @@ typedef struct VPacket VPacket;
 typedef struct VPort VPort;
 typedef struct VBus VBus;
 
-// addressable node in the graph ! 
+// addressable node in the graph !
 class Vertex {
   public:
     // just temporary stashes, used all over the place to prep messages, etc,

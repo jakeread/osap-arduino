@@ -20,15 +20,15 @@ no warranty is provided, and users accept all liability.
 // -------------------------------------------------------- Vertex Type Keys
 // will likely use these in the netrunner:
 
-#define VT_TYPE_ROOT 22       // top level 
-#define VT_TYPE_MODULE 23     // collection of things (?) or something, idk yet 
-#define VT_TYPE_ENDPOINT 24   // software endpoint w/ read/write semantics 
-#define VT_TYPE_QUERY 25 
-#define VT_TYPE_ENDPOINT_MULTISEG 26 // likewise, but requring multisegment transmission 
-#define VT_TYPE_CODE 27       // autonomous graph dwellers 
-#define VT_TYPE_RPC 28        // remote function calls 
-#define VT_TYPE_VPORT 44      // virtual ports 
-#define VT_TYPE_VBUS 45       // maybe bus-drop / bus-head / bus-cohost are differentiated 
+#define VT_TYPE_ROOT 22       // top level
+#define VT_TYPE_MODULE 23     // collection of things (?) or something, idk yet
+#define VT_TYPE_ENDPOINT 24   // software endpoint w/ read/write semantics
+#define VT_TYPE_QUERY 25
+#define VT_TYPE_ENDPOINT_MULTISEG 26 // likewise, but requring multisegment transmission
+#define VT_TYPE_CODE 27       // autonomous graph dwellers
+#define VT_TYPE_RPC 28        // remote function calls
+#define VT_TYPE_VPORT 44      // virtual ports
+#define VT_TYPE_VBUS 45       // maybe bus-drop / bus-head / bus-cohost are differentiated
 
 // -------------------------------------------------------- Endpoint Keys
 
@@ -56,12 +56,12 @@ no warranty is provided, and users accept all liability.
 #define RT_RENAME_REQ 171
 #define RT_RENAME_RES 172
 
-// -------------------------------------------------------- RPC Keys 
+// -------------------------------------------------------- RPC Keys
 
 #define RPC_INFO_REQ 181
-#define RPC_INFO_RES 182 
+#define RPC_INFO_RES 182
 #define RPC_CALL_REQ 183
-#define RPC_CALL_RES 184 
+#define RPC_CALL_RES 184
 
 // -------------------------------------------------------- VBus MVC Keys
 
