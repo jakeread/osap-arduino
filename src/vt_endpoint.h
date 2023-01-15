@@ -18,44 +18,44 @@ no warranty is provided, and users accept all liability.
 #include "core/vertex.h"
 #include "core/packets.h"
 
-// ---------------------------------------------- Endpoint Routes, extends OSAP Core Routes 
+// ---------------------------------------------- Endpoint Routes, extends OSAP Core Routes
 
 enum EP_ROUTE_STATES { EP_TX_IDLE, EP_TX_FRESH, EP_TX_AWAITING_ACK, EP_TX_AWAITING_AND_FRESH };
 
 class EndpointRoute {
-  public: 
+  public:
     Route* route;
     uint8_t ackId = 0;
     uint8_t ackMode = EP_ROUTEMODE_ACKLESS;
     EP_ROUTE_STATES state = EP_TX_IDLE;
     uint32_t lastTxTime = 0;
     uint32_t timeoutLength;
-    // constructor, 
+    // constructor,
     EndpointRoute(Route* _route, uint8_t _mode, uint32_t _timeoutLength = 1000);
     // destructor...
     ~EndpointRoute(void);
 };
 
-// ---------------------------------------------- Endpoints 
+// ---------------------------------------------- Endpoints
 
-// endpoint handler responses must be one of these enum - 
+// endpoint handler responses must be one of these enum -
 enum EP_ONDATA_RESPONSES { EP_ONDATA_REJECT, EP_ONDATA_ACCEPT, EP_ONDATA_WAIT };
 
-// default handlers, 
+// default handlers,
 EP_ONDATA_RESPONSES onDataDefault(uint8_t* data, uint16_t len);
 boolean beforeQueryDefault(void);
 
 class Endpoint : public Vertex {
   public:
-    // local data store & length, 
-    // we *should* have users pass us ptrs to these, and... 
-    // tell us when they are new ? or something ? 
+    // local data store & length,
+    // we *should* have users pass us ptrs to these, and...
+    // tell us when they are new ? or something ?
     uint8_t data[ENDPOINT_MAX_DATA_SIZE];
-    uint16_t dataLen = 0; 
-    // callbacks: on new data & before a query is written out 
+    uint16_t dataLen = 0;
+    // callbacks: on new data & before a query is written out
     EP_ONDATA_RESPONSES (*onData_cb)(uint8_t* data, uint16_t len) = onDataDefault;
     boolean (*beforeQuery_cb)(void) = beforeQueryDefault;
-    // we override vertex loop, 
+    // we override vertex loop,
     void loop(void) override;
     void destHandler(VPacket* pck, uint16_t ptr) override;
     // methods,
@@ -69,38 +69,38 @@ class Endpoint : public Vertex {
     uint16_t numRoutes = 0;
     uint16_t lastRouteServiced = 0;
     uint8_t nextAckID = 77;
-    // base constructor, 
-    Endpoint(   
-      Vertex* _parent, 
-      const char* _name, 
+    // base constructor,
+    Endpoint(
+      Vertex* _parent,
+      const char* _name,
       EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len),
       boolean (*_beforeQuery)(void)
     );
-    // these are called "delegating constructors" ... best reference is 
-    // here: https://en.cppreference.com/w/cpp/language/constructor 
-    // onData only, 
-    Endpoint(   
-      Vertex* _parent, 
+    // these are called "delegating constructors" ... best reference is
+    // here: https://en.cppreference.com/w/cpp/language/constructor
+    // onData only,
+    Endpoint(
+      Vertex* _parent,
       const char* _name,
       EP_ONDATA_RESPONSES (*_onData)(uint8_t* data, uint16_t len)
-    ) : Endpoint ( 
+    ) : Endpoint (
       _parent, _name, _onData, nullptr
     ){};
-    // beforeQuery only, 
-    Endpoint(   
-      Vertex* _parent, 
-      const char* _name, 
+    // beforeQuery only,
+    Endpoint(
+      Vertex* _parent,
+      const char* _name,
       boolean (*_beforeQuery)(void)
     ) : Endpoint (
       _parent, _name, nullptr, _beforeQuery
     ){};
-    // name only, 
-    Endpoint(   
-      Vertex* _parent, 
+    // name only,
+    Endpoint(
+      Vertex* _parent,
       const char* _name
     ) : Endpoint (
       _parent, _name, nullptr, nullptr
     ){};
 };
 
-#endif 
+#endif

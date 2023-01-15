@@ -18,60 +18,60 @@ no warranty is provided, and users accept all liability.
 #include <Arduino.h>
 
 // -------------------------------------------------------- Vertex Type Keys
-// will likely use these in the netrunner: 
+// will likely use these in the netrunner:
 
-#define VT_TYPE_ROOT 22       // top level 
-#define VT_TYPE_MODULE 23     // collection of things (?) or something, idk yet 
-#define VT_TYPE_ENDPOINT 24   // software endpoint w/ read/write semantics 
-#define VT_TYPE_QUERY 25 
-#define VT_TYPE_ENDPOINT_MULTISEG 26 // likewise, but requring multisegment transmission 
-#define VT_TYPE_CODE 25       // autonomous graph dwellers 
-#define VT_TYPE_VPORT 44      // virtual ports 
-#define VT_TYPE_VBUS 45       // maybe bus-drop / bus-head / bus-cohost are differentiated 
+#define VT_TYPE_ROOT 22       // top level
+#define VT_TYPE_MODULE 23     // collection of things (?) or something, idk yet
+#define VT_TYPE_ENDPOINT 24   // software endpoint w/ read/write semantics
+#define VT_TYPE_QUERY 25
+#define VT_TYPE_ENDPOINT_MULTISEG 26 // likewise, but requring multisegment transmission
+#define VT_TYPE_CODE 25       // autonomous graph dwellers
+#define VT_TYPE_VPORT 44      // virtual ports
+#define VT_TYPE_VBUS 45       // maybe bus-drop / bus-head / bus-cohost are differentiated
 
-// -------------------------------------------------------- Endpoint Keys 
+// -------------------------------------------------------- Endpoint Keys
 
-#define EP_SS_ACK 101       // the ack 
-#define EP_SS_ACKLESS 121   // single segment, no ack 
-#define EP_SS_ACKED 122     // single segment, request ack 
-#define EP_QUERY 131        // query request 
-#define EP_QUERY_RESP 132   // reply to query request 
-#define EP_ROUTE_QUERY_REQ 141 
+#define EP_SS_ACK 101       // the ack
+#define EP_SS_ACKLESS 121   // single segment, no ack
+#define EP_SS_ACKED 122     // single segment, request ack
+#define EP_QUERY 131        // query request
+#define EP_QUERY_RESP 132   // reply to query request
+#define EP_ROUTE_QUERY_REQ 141
 #define EP_ROUTE_QUERY_RES 142
 #define EP_ROUTE_SET_REQ 143
-#define EP_ROUTE_SET_RES 144 
+#define EP_ROUTE_SET_RES 144
 #define EP_ROUTE_RM_REQ 147
-#define EP_ROUTE_RM_RES 148 
+#define EP_ROUTE_RM_RES 148
 
 #define EP_ROUTEMODE_ACKED 167
-#define EP_ROUTEMODE_ACKLESS 168 
+#define EP_ROUTEMODE_ACKLESS 168
 
-// -------------------------------------------------------- Root Keys 
+// -------------------------------------------------------- Root Keys
 
 #define RT_DBG_STAT 151
-#define RT_DBG_ERRMSG 152 
+#define RT_DBG_ERRMSG 152
 #define RT_DBG_DBGMSG 153
 #define RT_DBG_RES 161
 #define RT_RENAME_REQ 171
-#define RT_RENAME_RES 172 
+#define RT_RENAME_RES 172
 
-// -------------------------------------------------------- VBus MVC Keys 
+// -------------------------------------------------------- VBus MVC Keys
 
 #define VBUS_BROADCAST_MAP_REQ 145
 #define VBUS_BROADCAST_MAP_RES 146
 #define VBUS_BROADCAST_QUERY_REQ 141
 #define VBUS_BROADCAST_QUERY_RES 142
 #define VBUS_BROADCAST_SET_REQ 143
-#define VBUS_BROADCAST_SET_RES 144 
-#define VBUS_BROADCAST_RM_REQ 147 
-#define VBUS_BROADCAST_RM_RES 148 
+#define VBUS_BROADCAST_SET_RES 144
+#define VBUS_BROADCAST_RM_REQ 147
+#define VBUS_BROADCAST_RM_RES 148
 
 // -------------------------------------------------------- BUS ACTION KEYS (outside OSAP scope)
 
 #define UB_AK_SETPOS 102
-#define UB_AK_GOTOPOS 105 
+#define UB_AK_GOTOPOS 105
 
-// -------------------------------------------------------- Type Keys 
+// -------------------------------------------------------- Type Keys
 
 #define TK_BOOL     2
 
@@ -113,9 +113,9 @@ union chunk_int32 {
 union chunk_uint32 {
     uint8_t bytes[4];
     uint32_t u;
-}; 
+};
 
-// -------------------------------------------------------- Reading 
+// -------------------------------------------------------- Reading
 
 void ts_readBoolean(boolean* val, unsigned char* buf, uint16_t* ptr);
 boolean ts_readBoolean(unsigned char* buf, uint16_t* ptr);
@@ -132,7 +132,7 @@ int32_t ts_readInt32(unsigned char* buf, uint16_t* ptr);
 
 float ts_readFloat32(unsigned char* buf, uint16_t* ptr);
 
-// -------------------------------------------------------- Writing 
+// -------------------------------------------------------- Writing
 
 void ts_writeBoolean(boolean val, unsigned char* buf, uint16_t* ptr);
 
@@ -157,7 +157,7 @@ void ts_writeString(String val, unsigned char* buf, uint16_t* ptr);
 void ts_writeString(unsigned char* str, uint16_t strLen, unsigned char* buf, uint16_t* ptr, uint16_t maxLen);
 String ts_readString(unsigned char* buf, uint16_t *ptr);
 
-// this should ~ just be a call to strncpy more or less, non ? 
+// this should ~ just be a call to strncpy more or less, non ?
 String ts_readString(unsigned char* buf, uint16_t* ptr);
 
-#endif 
+#endif
