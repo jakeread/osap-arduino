@@ -198,6 +198,7 @@ boolean VBus::injestBroadcastPacket(uint8_t* data, uint16_t len, uint8_t broadca
     // channel is empty, tell our caller they can rm whatever rx'd from their buffers;
     return true;
   }
+  return false;
 }
 
 void VBus::setBroadcastChannel(uint8_t channel, Route* route){

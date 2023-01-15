@@ -17,7 +17,11 @@ is; no warranty is provided, and users accept all liability.
 #include "core/packets.h"
 #include "utils/cobs.h"
 
+#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+#include <EEPROM.h>
+#else
 #include <FlashStorage_SAMD.h>
+#endif
 
 // stash most recents, and counts, and high water mark,
 uint32_t OSAP::loopItemsHighWaterMark = 0;
@@ -54,6 +58,9 @@ void OSAP::init(void){
   // wake up and check for your name...
   int16_t storedAddress = 0;
   int signature;
+  #if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+  EEPROM.begin(4096);
+  #endif
   EEPROM.get(storedAddress, signature);
   if(signature == WRITTEN_SIGNATURE){
     // EEPROM.get will pull into this temp thing, we think ?
@@ -117,7 +124,7 @@ void OSAP::destHandler(VPacket* pck, uint16_t ptr){
         // we need to get these, I guess as a char-array anyways,
         // there needs to be a "changeName" function (?) etc,
         payload[wptr ++] = 1; // can return '0' if not-d21 / also should do per-micro compile,
-        #warning should not copile flash stuff if we have a non-samd-supported chip (!)
+        #warning should not compile flash stuff if we have a non-samd-supported chip (!)
         len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
         stackLoadPacket(pck, datagram, len);
       }

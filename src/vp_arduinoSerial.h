@@ -18,7 +18,7 @@ is; no warranty is provided, and users accept all liability.
 #include <Arduino.h>
 #include "core/vertex.h"
 
-// buffer is max 255 long for that sweet sweet uint8_t alignment 
+// buffer is max 255 long for that sweet sweet uint8_t alignment
 #define SERLINK_BUFSIZE 255
 // -1 checksum, -1 packet id, -1 packet type, -2 cobs
 #define SERLINK_SEGSIZE SERLINK_BUFSIZE - 5
@@ -42,6 +42,11 @@ is; no warranty is provided, and users accept all liability.
 
 // note that we use uint8_t write ptrs / etc: and a size of 255,
 // so we are never dealing w/ wraps etc, god bless
+
+#if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
+extern "C" typedef SerialUART Uart;
+extern "C" typedef SerialUSB Serial_;
+#endif
 
 class VPort_ArduinoSerial : public VPort {
   public:
