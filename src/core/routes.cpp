@@ -18,7 +18,7 @@ no warranty is provided, and users accept all liability.
 Route::Route(uint8_t* _path, uint16_t _pathLen, uint16_t _ttl, uint16_t _segSize){
   ttl = _ttl;
   segSize = _segSize;
-  // nope, 
+  // nope,
   if(_pathLen > 64){
     _pathLen = 0;
   }
@@ -51,5 +51,5 @@ Route* Route::bfwd(uint16_t rxAddr){
 Route* Route::bbrd(uint16_t channel){
   writeKeyArgPair(path, pathLen, PK_BBRD, channel);
   pathLen += 2;
-  return this; 
+  return this;
 }

@@ -1,7 +1,7 @@
 /*
 osap/osapLoop.h
 
-main osap op: whips data vertex-to-vertex 
+main osap op: whips data vertex-to-vertex
 
 Jake Read at the Center for Bits and Atoms
 (c) Massachusetts Institute of Technology 2021
@@ -13,16 +13,16 @@ no warranty is provided, and users accept all liability.
 */
 
 #ifndef LOOP_H_
-#define LOOP_H_ 
+#define LOOP_H_
 
 #include "vertex.h"
 
-// we loop, we handle, we're functional (!) 
+// we loop, we handle, we're functional (!)
 void osapLoop(Vertex* root);
 void osapPacketHandler(VPacket* pck);
 
-// we have utes 
+// we have utes
 void osapPacketHandler(VPacket* pck);
 boolean internalTransport(VPacket* pck, uint16_t ptr);
 
-#endif 
+#endif

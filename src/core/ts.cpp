@@ -14,9 +14,9 @@ no warranty is provided, and users accept all liability.
 
 #include "ts.h"
 
-// ---------------------------------------------- Reading 
+// ---------------------------------------------- Reading
 
-// boolean 
+// boolean
 
 void ts_readBoolean(boolean* val, unsigned char* buf, uint16_t* ptr){
   if(buf[(*ptr) ++]){
@@ -32,7 +32,7 @@ boolean ts_readBoolean(unsigned char* buf, uint16_t* ptr){
   return val;
 }
 
-// uint8 
+// uint8
 
 uint8_t ts_readUint8(unsigned char* buf, uint16_t* ptr){
   uint8_t val = buf[(*ptr)];
@@ -40,7 +40,7 @@ uint8_t ts_readUint8(unsigned char* buf, uint16_t* ptr){
   return val;
 }
 
-// uint16 
+// uint16
 
 void ts_readUint16(uint16_t* val, unsigned char* buf, uint16_t* ptr){
   *val = buf[(*ptr) + 1] << 8 | buf[(*ptr)];
@@ -48,12 +48,12 @@ void ts_readUint16(uint16_t* val, unsigned char* buf, uint16_t* ptr){
 }
 
 #warning some of these are pretty vague, i.e. this ingests a pointer *not as a pointer* (lol)
-// so it doesn't increment it, whereas the readUint8 above *does so* - ... ?? pick a style ? 
+// so it doesn't increment it, whereas the readUint8 above *does so* - ... ?? pick a style ?
 uint16_t ts_readUint16(unsigned char* buf, uint16_t ptr){
   return (buf[ptr + 1] << 8) | buf[ptr];
 }
 
-// uint32 
+// uint32
 
 void ts_readUint32(uint32_t* val, unsigned char* buf, uint16_t* ptr){
   *val = buf[(*ptr) + 3] << 24 | buf[(*ptr) + 2] << 16 | buf[(*ptr) + 1] << 8 | buf[(*ptr)];
@@ -66,7 +66,7 @@ uint32_t ts_readUint32(unsigned char* buf, uint16_t* ptr){
   return val;
 }
 
-// int32 
+// int32
 
 int32_t ts_readInt32(unsigned char* buf, uint16_t* ptr){
   chunk_int32 chunk = { .bytes = { buf[(*ptr)], buf[(*ptr) + 1], buf[(*ptr) + 2], buf[(*ptr) + 3] } };
@@ -74,7 +74,7 @@ int32_t ts_readInt32(unsigned char* buf, uint16_t* ptr){
   return chunk.i;
 }
 
-// float32 
+// float32
 
 float ts_readFloat32(unsigned char* buf, uint16_t* ptr){
   chunk_float32 chunk = { .bytes = { buf[(*ptr)], buf[(*ptr) + 1], buf[(*ptr) + 2], buf[(*ptr) + 3] } };
@@ -82,7 +82,7 @@ float ts_readFloat32(unsigned char* buf, uint16_t* ptr){
   return chunk.f;
 }
 
-// -------------------------------------------------------- Writing 
+// -------------------------------------------------------- Writing
 
 // boolean
 
@@ -94,7 +94,7 @@ void ts_writeBoolean(boolean val, unsigned char* buf, uint16_t* ptr){
   }
 }
 
-// unsigned 
+// unsigned
 
 void ts_writeUint8(uint8_t val, unsigned char* buf, uint16_t* ptr){
   buf[(*ptr) ++] = val;
@@ -112,7 +112,7 @@ void ts_writeUint32(uint32_t val, unsigned char* buf, uint16_t* ptr){
   buf[(*ptr) ++] = (val >> 24) & 255;
 }
 
-// signed 
+// signed
 
 void ts_writeInt16(int16_t val, unsigned char* buf, uint16_t* ptr){
   chunk_int16 chunk = { i: val };
@@ -128,7 +128,7 @@ void ts_writeInt32(int32_t val, unsigned char* buf, uint16_t* ptr){
   buf[(*ptr) ++] = chunk.bytes[3];
 }
 
-// floats 
+// floats
 
 void ts_writeFloat32(float val, volatile unsigned char* buf, uint16_t* ptr){
   chunk_float32 chunk;
@@ -170,7 +170,7 @@ void ts_writeString(unsigned char* str, uint16_t strLen, unsigned char* buf, uin
   buf[(*ptr) ++] = (strLen >> 8) & 255;
   buf[(*ptr) ++] = (strLen >> 16) & 255;
   buf[(*ptr) ++] = (strLen >> 24) & 255;
-  // write in one-by-one, surely there is a better way, 
+  // write in one-by-one, surely there is a better way,
   for(uint16_t i = 0; i < strLen; i ++){
     buf[(*ptr) ++] = str[i];
   }
@@ -184,12 +184,12 @@ void ts_writeString(String val, unsigned char* buf, uint16_t* ptr){
 String ts_readString(unsigned char* buf, uint16_t* ptr){
   // length is up front;
   uint32_t len = ts_readUint32(buf, ptr);
-  // the rest is char array... 
+  // the rest is char array...
   char cStr[len];
   for(uint16_t c = 0; c < len; c ++){
     cStr[c] = buf[(*ptr) + c];
   }
-  // terminate it... 
+  // terminate it...
   cStr[len] = '\0';
   // and we can constructor that...
   return String(cStr);
