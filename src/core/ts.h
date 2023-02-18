@@ -81,6 +81,7 @@ no warranty is provided, and users accept all liability.
 
 // -------------------------------------------------------- Type Keys
 
+#define TK_NULL     1 
 #define TK_BOOL     2
 
 #define TK_UINT8    4
@@ -94,6 +95,14 @@ no warranty is provided, and users accept all liability.
 
 #define TK_FLOAT32  26
 #define TK_FLOAT64  28
+
+// -------------------------------------------------------- Ah Shit,
+
+// this is a bodge for RPCs returning / getting void... 
+// needs a template wizard 
+typedef struct null_t{
+  boolean bodge = false;
+};
 
 // -------------------------------------------------------- Chunks
 

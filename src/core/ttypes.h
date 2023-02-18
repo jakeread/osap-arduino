@@ -26,6 +26,10 @@ template<typename T>
 uint8_t _getTypeKey(void){
   return 0;
 }
+template<> inline                     // void 
+uint8_t _getTypeKey<null_t>(void){
+  return TK_NULL;
+}
 template<> inline                     // boolean
 uint8_t _getTypeKey<boolean>(void){
   return TK_BOOL;

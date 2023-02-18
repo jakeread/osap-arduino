@@ -28,6 +28,8 @@ class RPCVertex : public Vertex {
     // we stash a function pointer, to call,
     // since RT, AT match our function pointer direct, this works...
     RT (*funcPtr)(AT argVal) = nullptr;
+    // an arg name
+    char argName[VT_NAME_MAX_LEN];
     // we make type-things of the things... this is
     // a TT of a TTS in some cases... yikes ?
     TypeHelper<AT> argThing;
@@ -52,6 +54,9 @@ class RPCVertex : public Vertex {
             payload[wptr ++] = retThing.getTypeKey(); // getTypeKey<RT>(); //typeKeyRT.get();
             ts_writeUint16(retThing.getLen(), payload, &wptr);
             ts_writeUint16(retThing.getByteSize(), payload, &wptr);
+
+            // write the string in, 
+            ts_writeString(argName, payload, &wptr);
 
             // and ship that,
             uint16_t len = writeReply(pck->data, datagram, VT_VPACKET_MAX_SIZE, payload, wptr);
@@ -90,11 +95,14 @@ class RPCVertex : public Vertex {
     RPCVertex(
       Vertex* _parent,
       const char* _name,
+      const char* _argName,
       RT (*_funcPtr)(AT _argVal)
     ) : Vertex(_parent){
       // appending...
       strcpy(name, "rpc_");
       strncat(name, _name, VT_NAME_MAX_LEN - 5);
+      // copy pasta argname, 
+      strcpy(argName, _argName);
       // type self,
       type = VT_TYPE_RPC;
       // done for now,
