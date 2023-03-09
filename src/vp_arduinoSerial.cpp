@@ -136,8 +136,7 @@ void VPort_ArduinoSerial::send(uint8_t* data, uint16_t len){
   outAwaiting[len + 4] = 0;               // stuff delimiter,
   outAwaitingLen = outAwaiting[0];        // track...
   // transmit attempts etc
-  outAwaitingNTA = 0;
-  outAwaitingLTAT = 0;
+  outAwaitingTransmitted = false;
   // try it
   checkOutputStates();                    // try / start write
 }
@@ -162,21 +161,12 @@ void VPort_ArduinoSerial::checkOutputStates(void){
       // acks get out first,
       txState = SERLINK_TX_ACK;
       lastTxTime = millis();
-    } else if (outAwaitingLen && outAwaitingLTAT + SERLINK_RETRY_TIME < micros()){
-      // OSAP_DEBUG("---");
-      // then packets... the above says: if we have an out packet and (1) we haven't yet tx'd it *or* (2) we should retry it,
-      if(outAwaitingNTA > SERLINK_RETRY_MACOUNT){
-        // bail on it, this was meant to be our last attempt, still no ack,
-        outAwaitingLen = 0;
-        outAwaitingNTA = 0;
-      } else {
-        // setup to retransmit
-        txState = SERLINK_TX_PCK;
-        lastTxTime = millis();
-        outAwaitingLTAT = micros();
-        outTxRp = 0;
-        outAwaitingNTA ++;
-      }
+    } else if (outAwaitingLen && !outAwaitingTransmitted){
+      // setup to retransmit
+      txState = SERLINK_TX_PCK;
+      lastTxTime = millis();
+      outAwaitingTransmitted = true;
+      outTxRp = 0;
     } else if (millis() - lastTxTime > SERLINK_KEEPALIVE_TX_TIME){
       // then keepalives,
       txState = SERLINK_TX_KPA;
@@ -222,45 +212,4 @@ void VPort_ArduinoSerial::checkOutputStates(void){
     default:
       break;
   }
-  // --------------------------
-  // below was the old structure, which used more memory and... was probably slower, with that memcpy
-  /*
-  if(ackIsAwaiting && txBufferLen == 0){   // can we ack?
-    memcpy(txBuffer, ackAwaiting, 4);
-    txBufferLen = 4;
-    lastTxTime = millis();
-    txBufferRp = 0;
-    ackIsAwaiting = false;
-  } else if(outAwaitingLen > 0 && txBufferLen == 0){   // would we be clear to tx ?
-    // check retransmit cases,
-    if(outAwaitingLTAT == 0 || outAwaitingLTAT + SERLINK_RETRY_TIME < micros()){
-      memcpy(txBuffer, outAwaiting, outAwaitingLen);
-      outAwaitingLTAT = micros();
-      txBufferLen = outAwaitingLen;
-      lastTxTime = millis();
-      txBufferRp = 0;
-      outAwaitingNTA ++;
-    }
-    // check if last attempt,
-    if(outAwaitingNTA >= SERLINK_RETRY_MACOUNT){
-      outAwaitingLen = 0;
-    }
-  } else if (millis() - lastTxTime > SERLINK_KEEPALIVE_TX_TIME && txBufferLen == 0){
-    //OSAP_DEBUG("keepalive-ing " + name + " " + String(isOpen()));
-    memcpy(txBuffer, keepAlivePacket, 3);
-    txBufferLen = 3;
-    lastTxTime = millis();
-  }
-  // finally, we write out so long as we can:
-  // we aren't guaranteed to get whole pckts out in each fn call
-  while(stream->availableForWrite() && txBufferLen != 0){
-    // output next byte,
-    stream->write(txBuffer[txBufferRp ++]);
-    // check for end of buffer; reset transmit states if so
-    if(txBufferRp >= txBufferLen) {
-      txBufferLen = 0;
-      txBufferRp = 0;
-    }
-  }
-  */
 }

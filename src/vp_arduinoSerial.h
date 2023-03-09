@@ -88,8 +88,9 @@ class VPort_ArduinoSerial : public VPort {
     uint8_t outAwaitingId = 1;
     uint8_t outAwaitingLen = 0;
     uint8_t outTxRp = 0;          // tx read-pointer for the packet
-    uint8_t outAwaitingNTA = 0;   // number of transmit attempts
-    unsigned long outAwaitingLTAT = 0;
+    boolean outAwaitingTransmitted = false;
+    // uint8_t outAwaitingNTA = 0;   // number of transmit attempts
+    // unsigned long outAwaitingLTAT = 0;
     // -------------------------------- Constructors
     VPort_ArduinoSerial(Vertex* _parent, const char* _name, Uart* _uart);
     VPort_ArduinoSerial(Vertex* _parent, const char* _name, Serial_* _usbcdc);
