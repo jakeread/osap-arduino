@@ -15,31 +15,40 @@ no warranty is provided, and users accept all liability.
 #ifndef OSAP_CONFIG_H_
 #define OSAP_CONFIG_H_
 
-// version is passed around as a uint32_t, read as b0.b1.b2.b3, so 0.0.0.1 == 1, etc,
-#define OSAP_VERSION_NUM 1
+// -------------------------------- Track Version - Num 
 
-// size of vertex stacks, lenght, then count,
-#define VT_VPACKET_MAX_SIZE 128
-#define VT_NAME_MAX_LEN 31
-#define VT_MAX_CHILDREN 16
+// i.e. 0.1.2 
+// MAJOR: 0, 
+// MID: 1,
+// MINOR: 2
 
-// count of routes each endpoint can have,
-// these, equally, should be allocated in-total, and assigned
-// to individual endpoints, right ?
-#define ENDPOINT_MAX_DATA_SIZE 32
-#define ENDPOINT_MAX_ROUTES 2
-#define ENDPOINT_ROUTE_MAX_LEN 48
+#define OSAP_VERSION_MAJOR 0 
+#define OSAP_VERSION_MID 4
+#define OSAP_VERSION_MINOR 0 
 
+// -------------------------------- Stack / Build Sizes
+
+#define OSAP_CONFIG_STACK_SIZE 6
+#define OSAP_CONFIG_PACKET_MAX_SIZE 256
+
+#define OSAP_CONFIG_MAX_PORTS 32
+#define OSAP_CONFIG_MAX_LGATEWAYS 16
+#define OSAP_CONFIG_MAX_BGATEWAYS 8
+
+#define OSAP_CONFIG_ROUTE_MAX_LENGTH 64 
+
+// -------------------------------- Error / Debug Build Options 
+
+#define OSAP_CONFIG_INCLUDE_DEBUG_MSGS
+#define OSAP_CONFIG_INCLUDE_ERROR_MSGS
+
+// -------------------------------- Bus-Inclusion or-not, 
+
+#define OSAP_CONFIG_INCLUDE_BUS_CODES
+
+#ifdef OSAP_CONFIG_INCLUDE_BUS_CODES
 // count of broadcast channels width,
-#define VBUS_MAX_BROADCAST_CHANNELS 64
-
-// micro-sized ? should just rm this entirely, one-size osap...
-// #define OSAP_IS_MINI
-
-// send debug messages?
-#define OSAP_HAS_DEBUG_MSGS
-
-// send error messages?
-#define OSAP_HAS_ERROR_MSGS
+#define OSAP_BUSCONFIG_MAX_BROADCAST_CHANNELS 32
+#endif 
 
 #endif

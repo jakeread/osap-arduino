@@ -1,53 +1,43 @@
-// RGB LED and Button device https://github.com/modular-things/modular-things-circuits/tree/main/rgbb
-// made network-accessible via OSAP
-
 #include <osap.h>
-#include <vt_endpoint.h>
-#include <vp_arduinoSerial.h>
 
-// ---------------------------------------------- Declare Pins
+// ---------------------------------------------- Pins
 #define PIN_R 14
 #define PIN_G 15
 #define PIN_B 16
 #define PIN_BUT 17
 
-// ---------------------------------------------- Instantiate OSAP
-// we use a fixed memory model, which can be stretched for performance
-// or squished to save flash,
-#define OSAP_STACK_SIZE 10
-VPacket messageStack[OSAP_STACK_SIZE];
-// ---------------------------------------------- OSAP central-nugget
-// the first argument here names the device, as it will appear in
-// graphs, or via searches
-OSAP osap("rgbb", messageStack, OSAP_STACK_SIZE);
+// the runtime, 
+OSAP_Runtime osap;
 
-// ---------------------------------------------- 0th Vertex: OSAP USB Serial
-// this is a usb-serial encapsulation,
-VPort_ArduinoSerial vp_arduinoSerial(&osap, "usbSerial", &Serial);
+// the usb link, 
+OSAP_Gateway_USBSerial serLink(&Serial);
 
-// ---------------------------------------------- 1st Vertex: RGB Inputs Endpoint
-// a callback handler for when someone sends data to our 1st vertex,
-EP_ONDATA_RESPONSES onRGBData(uint8_t* data, uint16_t len){
-  // we did the float -> int conversion in js
+// our name-setting-thing
+OSAP_Port_DeviceNames namePort("rgbb");
+
+// button-state getter, 
+boolean lastButtonState = false;
+
+size_t onButtonReq(uint8_t* data, size_t len, uint8_t* reply){
+  // then write-into reply:
+  lastButtonState ? reply[0] = 1 : reply[0] = 0;
+  return 1;
+}
+
+OSAP_Port_Named getButtonState("getButtonState", onButtonReq);
+
+void onRGBPacket(uint8_t* data, size_t len){
   analogWrite(PIN_R, data[0]);
   analogWrite(PIN_G, data[1]);
   analogWrite(PIN_B, data[2]);
-  return EP_ONDATA_ACCEPT;
 }
 
-Endpoint rgbEndpoint(&osap, "rgbValues", onRGBData);
-
-// ---------------------------------------------- 2nd Vertex: Button Endpoint
-// an endpoint that we can write button states to, to pipe to others in
-// the graph...
-Endpoint buttonEndpoint(&osap, "buttonState");
+OSAP_Port_Named setRGB("setRGB", onRGBPacket);
 
 void setup() {
-  // startup OSAP
-  osap.init();
-  // startup the serialport encapsulation,
-  vp_arduinoSerial.begin();
-  // setup our RGB led with PWM
+  // uuuh... 
+  osap.begin();
+  // "hardware"
   analogWriteResolution(8);
   pinMode(PIN_R, OUTPUT);
   pinMode(PIN_G, OUTPUT);
@@ -55,26 +45,23 @@ void setup() {
   analogWrite(PIN_R, 255);
   analogWrite(PIN_G, 255);
   analogWrite(PIN_B, 255);
-  // pull-down switch, high when pressed
   pinMode(PIN_BUT, INPUT);
+  // pull-down switch, high when pressed
 }
 
-// button-reading (and debouncing) variables,
 uint32_t debounceDelay = 10;
 uint32_t lastButtonCheck = 0;
-boolean lastButtonState = false;
 
 void loop() {
-  // we call this once / cycle, to operate graph transport,
+  // do graph stuff
   osap.loop();
-  // debounce and set button states,
+  // debounce and set button states, 
   if(lastButtonCheck + debounceDelay < millis()){
     lastButtonCheck = millis();
     boolean newState = digitalRead(PIN_BUT);
     if(newState != lastButtonState){
       lastButtonState = newState;
-      // and publish new data to the endpoint
-      buttonEndpoint.write(lastButtonState);
     }
   }
 }
+

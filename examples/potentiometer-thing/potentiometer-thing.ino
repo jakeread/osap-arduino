@@ -5,6 +5,8 @@
 #include <vt_endpoint.h>
 #include <vp_arduinoSerial.h>
 
+// TODO: update... 
+
 // ---------------------------------------------- Declare Pins
 #define PIN_POT1 8
 #define PIN_POT2 7
@@ -12,18 +14,18 @@
 // ---------------------------------------------- Instantiate OSAP
 // we use a fixed memory model, which can be stretched for performance
 // or squished to save flash,
-#define OSAP_STACK_SIZE 10
-VPacket messageStack[OSAP_STACK_SIZE];
+#define OSAP_CONFIG_STACK_SIZE 10
+VPacket messageStack[OSAP_CONFIG_STACK_SIZE];
 // ---------------------------------------------- OSAP central-nugget
 // the first argument here names the device, as it will appear in
 // graphs, or via searches
-OSAP osap("potentiometer", messageStack, OSAP_STACK_SIZE);
+OSAP osap("potentiometer", messageStack, OSAP_CONFIG_STACK_SIZE);
 
-// ---------------------------------------------- 0th Vertex: OSAP USB Serial
+// ---------------------------------------------- 0th VPort: OSAP USB Serial
 // this is a usb-serial encapsulation,
-VPort_ArduinoSerial vp_arduinoSerial(&osap, "usbSerial", &Serial);
+OSAP_ArduinoSerLink vp_arduinoSerial(&osap, "usbSerial", &Serial);
 
-// ---------------------------------------------- 1st Vertex: Potentiometer Values
+// ---------------------------------------------- 1st VPort: Potentiometer Values
 boolean prePotQuery(void);
 Endpoint tofEndpoint(&osap, "potentiometerQuery", prePotQuery);
 // we can declare a callback function that is run ahead of network queries to this endpoint,
@@ -44,7 +46,7 @@ boolean prePotQuery(void) {
 void setup() {
   // startup OSAP
   osap.init();
-  // startup the serialport encapsulation,
+  // startup the serialvport encapsulation,
   vp_arduinoSerial.begin();
   // setup our potentiometers as inputs
   pinMode(PIN_POT1, INPUT);
@@ -52,6 +54,6 @@ void setup() {
 }
 
 void loop() {
-  // we call this once / cycle, to operate graph transport,
+  // we call this once / cycle, to operate graph transvport,
   osap.loop();
 }
