@@ -45,7 +45,7 @@ void serializers_readString(uint8_t* buf, uint16_t offset, char* dest, size_t ma
   // if it wasn't there, suppose we stick it in at maxlen:
   if(!found) zero = offset + maxLen;
   // ok ok, we can use memcpy then, 
-  memcpy(dest, &(buf[offset]), (zero - offset));
+  memcpy(dest, &(buf[offset]), zero - offset);
   // re-write the trailing zero, just-in-case, 
-  buf[offset + zero] = '\0';
+  buf[zero] = '\0';
 }
