@@ -10,6 +10,11 @@
 
 class OSAP_Gateway_USBSerial : public LGateway {
   public:
+    #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
+    OSAP_Gateway_USBSerial(SerialUSB* _usbcdc);
+    #else 
+    OSAP_Gateway_USBSerial(Serial_* _usbcdc);
+    #endif 
     // startup the link, 
     void begin(void) override;
     // operate the link 
@@ -19,8 +24,6 @@ class OSAP_Gateway_USBSerial : public LGateway {
     boolean isOpen(void) override;
     // transmit along 
     void send(uint8_t* data, size_t len) override;
-    // constructor... 
-    OSAP_Gateway_USBSerial(Serial_* usbcdc);
   private: 
     COBSUSBSerial cobsUsbSerialLink;
 };

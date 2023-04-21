@@ -4,7 +4,11 @@
 
 class COBSUSBSerial {
   public: 
+    #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
+    COBSUSBSerial(SerialUSB* _usbcdc);
+    #else 
     COBSUSBSerial(Serial_* _usbcdc);
+    #endif 
     void begin(void);
     void loop(void);
     // check & read,
@@ -17,7 +21,11 @@ class COBSUSBSerial {
     // transmit a packet of this length 
     void send(uint8_t* packet, size_t len);
   private: 
+    #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
+    SerialUSB* usbcdc = nullptr;
+    #else 
     Serial_* usbcdc = nullptr;
+    #endif 
     // buffer, write pointer, length, 
     uint8_t rxBuffer[255];
     uint8_t rxBufferWp = 0;

@@ -5,9 +5,16 @@
 #include "COBSUSBSerial.h"
 #include "utils/cobs.h"
 
+
+#if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
+COBSUSBSerial::COBSUSBSerial(SerialUSB* _usbcdc){
+  usbcdc = _usbcdc;
+}
+#else 
 COBSUSBSerial::COBSUSBSerial(Serial_* _usbcdc){
   usbcdc = _usbcdc;
 }
+#endif 
 
 void COBSUSBSerial::begin(void){
   usbcdc->begin(9600);

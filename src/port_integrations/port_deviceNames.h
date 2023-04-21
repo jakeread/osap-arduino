@@ -28,7 +28,7 @@ class OSAP_Port_DeviceNames : public VPort {
 
   private:
     char typeName[PDNAMES_NAME_MAX_CHARS] = "defaultDeviceName";
-    char uniqueName[PDNAMES_NAME_MAX_CHARS] = "defaultUniqueName";
+    char uniqueName[PDNAMES_NAME_MAX_CHARS] = "dfltName";
 };
 
 #endif

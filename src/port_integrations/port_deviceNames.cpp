@@ -37,7 +37,7 @@ void OSAP_Port_DeviceNames::begin(void){
   int signature;
   
   #if defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
-  EEEPROM.begin(4096);
+  EEPROM.begin(4096);
   #endif 
 
   EEPROM.get(STORAGE_ADDR, signature);

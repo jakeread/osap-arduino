@@ -3,13 +3,23 @@
 #include "link_cobsUsbSerial.h"
 #include "../packets/packets.h"
 
-OSAP_Gateway_USBSerial::OSAP_Gateway_USBSerial(Serial_* usbcdc):
-    LGateway(OSAP_Runtime::getInstance()), // call the lgateway constructor, 
-    cobsUsbSerialLink(usbcdc)           // call the link constructor 
+#if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
+OSAP_Gateway_USBSerial::OSAP_Gateway_USBSerial(SerialUSB* usbcdc):
+  LGateway(OSAP_Runtime::getInstance()), // call the lgateway constructor, 
+  cobsUsbSerialLink(usbcdc)           // call the link constructor 
 {
   // set type...
   typeKey = LGATEWAYTYPEKEY_USBSERIAL;
 }
+#else 
+OSAP_Gateway_USBSerial::OSAP_Gateway_USBSerial(Serial_* usbcdc):
+  LGateway(OSAP_Runtime::getInstance()), // call the lgateway constructor, 
+  cobsUsbSerialLink(usbcdc)           // call the link constructor 
+{
+  // set type...
+  typeKey = LGATEWAYTYPEKEY_USBSERIAL;
+}
+#endif 
 
 void OSAP_Gateway_USBSerial::begin(void){
   cobsUsbSerialLink.begin();
