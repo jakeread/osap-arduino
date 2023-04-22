@@ -1,59 +1,69 @@
-// two-channel potentiometer device https://github.com/modular-things/modular-things-circuits/tree/main/potentiometer
-// made network-accessible via OSAP
-
 #include <osap.h>
-#include <vt_endpoint.h>
-#include <vp_arduinoSerial.h>
 
-// TODO: update... 
+// -------------------------- The "other side" of this example is 
+// part of the modular-things project, which you can find at 
+// https://github.com/modular-things/modular-things
+// https://github.com/modular-things/modular-things/blob/main/src/lib/virtualThings/potentiometer.js
 
-// ---------------------------------------------- Declare Pins
+// -------------------------- Define Pins for our two Potentiometers
+
 #define PIN_POT1 8
 #define PIN_POT2 7
 
-// ---------------------------------------------- Instantiate OSAP
-// we use a fixed memory model, which can be stretched for performance
-// or squished to save flash,
-#define OSAP_CONFIG_STACK_SIZE 10
-VPacket messageStack[OSAP_CONFIG_STACK_SIZE];
-// ---------------------------------------------- OSAP central-nugget
-// the first argument here names the device, as it will appear in
-// graphs, or via searches
-OSAP osap("potentiometer", messageStack, OSAP_CONFIG_STACK_SIZE);
+// -------------------------- Instantiate the OSAP Runtime, 
 
-// ---------------------------------------------- 0th VPort: OSAP USB Serial
-// this is a usb-serial encapsulation,
-OSAP_ArduinoSerLink vp_arduinoSerial(&osap, "usbSerial", &Serial);
+OSAP_Runtime osap;
 
-// ---------------------------------------------- 1st VPort: Potentiometer Values
-boolean prePotQuery(void);
-Endpoint tofEndpoint(&osap, "potentiometerQuery", prePotQuery);
-// we can declare a callback function that is run ahead of network queries to this endpoint,
-// here, we only read the potentiometers when this has happened, and write their readings
-// to the endpoint
-boolean prePotQuery(void) {
-  uint8_t buf[4];
+// -------------------------- Instantiate a link layer, 
+// handing OSAP the built-in Serial object to send packetized 
+// data around the network 
+
+OSAP_Gateway_USBSerial serLink(&Serial);
+
+// -------------------------- Adding this software-defined port 
+// allows remote services to find the type-name of this device (here "potentiometer")
+// and to give it a unique name, that will be stored after reset 
+
+OSAP_Port_DeviceNames namePort("potentiometer");
+
+// -------------------------- We can define functions that will be called
+// when messages to their function-name are sent to our device. 
+// if we use `size_t func(uint8_t* data, size_t len, uint8_t* reply){}`
+// whatever is written into reply[] (return the length) will be shipped 
+// back to the sender,
+
+size_t readPotentiometer(uint8_t* data, size_t len, uint8_t* reply) {
   uint16_t value1 = analogRead(PIN_POT1);
   uint16_t value2 = analogRead(PIN_POT2);
-  buf[0] = value1 & 0xFF;
-  buf[1] = value1 >> 8 & 0xFF;
-  buf[2] = value2 & 0xFF;
-  buf[3] = value2 >> 8 & 0xFF;
-  tofEndpoint.write(buf, 4);
-  return true;
+
+  reply[0] = value1 & 0xFF;
+  reply[1] = value1 >> 8 & 0xFF;
+  reply[2] = value2 & 0xFF;
+  reply[3] = value2 >> 8 & 0xFF;
+
+  return 4;
 }
 
+OSAP_Port_Named readPotentiometer_port("readPotentiometer", readPotentiometer);
+
+// in the "rgbb" example, you can see a different function definition, 
+// `void func(uint8_t* data, size_t len){}`
+// that doesn't bother with the reply, and is attached to a name using a similar method 
+
+// -------------------------- Arduino Setup
+
 void setup() {
-  // startup OSAP
-  osap.init();
-  // startup the serialvport encapsulation,
-  vp_arduinoSerial.begin();
-  // setup our potentiometers as inputs
+  // we have to startup the osap runtime 
+  osap.begin();
+  // and initialize our hardware 
   pinMode(PIN_POT1, INPUT);
   pinMode(PIN_POT2, INPUT);
 }
 
+// -------------------------- Arduino Loop
+
 void loop() {
-  // we call this once / cycle, to operate graph transvport,
+  // as often as possible, we want to operate the OSAP runtime, 
+  // this loop listens for messages on link-layers, and handles packets... 
   osap.loop();
 }
