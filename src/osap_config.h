@@ -24,7 +24,7 @@ no warranty is provided, and users accept all liability.
 
 #define OSAP_VERSION_MAJOR 0 
 #define OSAP_VERSION_MID 4
-#define OSAP_VERSION_MINOR 3 
+#define OSAP_VERSION_MINOR 4 
 
 // -------------------------------- Stack / Build Sizes
 
