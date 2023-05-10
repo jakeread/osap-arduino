@@ -31,21 +31,17 @@ void serializers_writeString(uint8_t* buf, uint16_t* wptr, char* val){
   *wptr += len;
 }
 
-void serializers_readString(uint8_t* buf, uint16_t offset, char* dest, size_t maxLen){
-  // erp, let's find the location of the trailing zero:
-  uint16_t zero = offset;
-  boolean found = false;
-  for(uint16_t z = offset; z < offset + maxLen; z ++){
-    if(buf[z] == '\0'){
-      zero = z;
-      found = true;
-      break;
-    }
-  }
-  // if it wasn't there, suppose we stick it in at maxlen:
-  if(!found) zero = offset + maxLen;
-  // ok ok, we can use memcpy then, 
-  memcpy(dest, &(buf[offset]), zero - offset);
-  // re-write the trailing zero, just-in-case, 
-  buf[zero] = '\0';
+size_t serializers_readString(uint8_t* buf, uint16_t offset, char* dest, size_t maxLen){
+  // this should be that, 
+  char* str = (char*)(&(buf[offset]));
+  // which should have a length, 
+  size_t len = strlen(str);
+  // that we can constrain to this...
+  if(len > maxLen) len = maxLen;
+  // we can use that to copy-a-la, 
+  memcpy(dest, &(buf[offset]), len);
+  // and write the trailing zero, 
+  dest[len] = '\0';
+  // and return that length, 
+  return len;
 }

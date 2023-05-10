@@ -90,8 +90,9 @@ void OSAP_Port_DeviceNames::onPacket(uint8_t* data, size_t len, Route* sourceRou
         _payload[wptr ++] = data[1];
         // 1 to ack-ok, 0 if we (i.e.) have no flash and can't do this 
         _payload[wptr ++] = 1; 
-        // erp, get a string ?
-        serializers_readString(data, 2, tempStr, PDNAMES_NAME_MAX_CHARS);
+        // erp, get a string ? and let's pack the length back, 
+        // this is useful largely for debugging / check-summing... 
+        _payload[wptr ++] = serializers_readString(data, 2, tempStr, PDNAMES_NAME_MAX_CHARS);
         // ... set that
         setUniqueName(tempStr);
         // e's ackin:
