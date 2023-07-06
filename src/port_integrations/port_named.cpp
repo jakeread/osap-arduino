@@ -31,11 +31,11 @@ OSAP_Port_Named::OSAP_Port_Named(
 
 void OSAP_Port_Named::onPacket(uint8_t* data, size_t len, Route* sourceRoute, uint16_t sourcePort){
   switch(data[0]){
-    case PFANCYKEY_NAMEREQ:
+    case PNAMED_NAMEREQ:
       {
         // write the key and copy the msg id, 
         uint16_t wptr = 0;
-        _payload[wptr ++] = PFANCYKEY_NAMERES;
+        _payload[wptr ++] = PNAMED_NAMERES;
         _payload[wptr ++] = data[1];
         // write name 
         serializers_writeString(_payload, &wptr, name);
@@ -43,11 +43,11 @@ void OSAP_Port_Named::onPacket(uint8_t* data, size_t len, Route* sourceRoute, ui
         send(_payload, wptr, sourceRoute, sourcePort);
       }
       break;
-    case PFANCYKEY_MSG:
+    case PNAMED_MSG:
       {
         // we'll have at least this much reply: 
         uint16_t wptr = 0;
-        _payload[wptr ++] = PFANCYKEY_ACK;
+        _payload[wptr ++] = PNAMED_ACK;
         _payload[wptr ++] = data[1];
         // call whichever func was attached by alternate constructors:
         if(onMsgFunctionWithReply != nullptr){
@@ -63,9 +63,9 @@ void OSAP_Port_Named::onPacket(uint8_t* data, size_t len, Route* sourceRoute, ui
       }
       break;
     // we shouldn't encounter these in any embedded codes yet: 
-    case PFANCYKEY_NAMERES:
-    case PFANCYKEY_ACK:
-      OSAP_ERROR("PFANCYKEY_NAMERES or ACK to fancy-embedded-implementer");
+    case PNAMED_NAMERES:
+    case PNAMED_ACK:
+      OSAP_ERROR("PNAMED_NAMERES or ACK to fancy-embedded-implementer");
       break;
     default:
       OSAP_ERROR("borked fancyport msg w/ 1st byte " + String(data[0]));

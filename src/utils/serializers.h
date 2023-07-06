@@ -10,6 +10,7 @@ void serializers_writeUint16(uint8_t* buf, uint16_t* wptr, uint16_t val);
 void serializers_writeUint16(uint8_t* buf, uint16_t offset, uint16_t val);
 // read 
 uint16_t serializers_readUint16(uint8_t* buf, uint16_t offset);
+// read w/ ptr passalong 
 
 // write 
 void serializers_writeString(uint8_t* buf, uint16_t* wptr, char* val);

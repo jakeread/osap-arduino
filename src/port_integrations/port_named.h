@@ -8,10 +8,10 @@
 #define PNAMED_NAME_MAX_CHARS 32
 
 // keys for this layer 
-#define PFANCYKEY_NAMEREQ 1
-#define PFANCYKEY_NAMERES 2 
-#define PFANCYKEY_MSG 3 
-#define PFANCYKEY_ACK 4 
+#define PNAMED_NAMEREQ 1
+#define PNAMED_NAMERES 2 
+#define PNAMED_MSG 3 
+#define PNAMED_ACK 4 
 
 class OSAP_Port_Named : public VPort {
   public:
