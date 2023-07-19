@@ -28,5 +28,6 @@ is; no warranty is provided, and users accept all liability.
 #include "port_integrations/port_named.h"
 #include "port_integrations/port_deviceNames.h"
 #include "port_integrations/port_messageEscape.h"
+#include "port_integrations/port_onePipe.h"
 
 #endif
