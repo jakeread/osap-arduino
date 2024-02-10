@@ -6,7 +6,9 @@ class COBSUSBSerial {
   public: 
     #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
     COBSUSBSerial(SerialUSB* _usbcdc);
-    #else 
+    #elif defined(ARDUINO_TEENSY41) || defined(ARDUINO_TEENSY40)
+    COBSUSBSerial(usb_serial_class* _usbcdc);
+    #else
     COBSUSBSerial(Serial_* _usbcdc);
     #endif 
     void begin(void);
@@ -23,6 +25,8 @@ class COBSUSBSerial {
   private: 
     #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
     SerialUSB* usbcdc = nullptr;
+    #elif defined(ARDUINO_TEENSY41) || defined(ARDUINO_TEENSY40)
+    usb_serial_class* usbcdc = nullptr;
     #else 
     Serial_* usbcdc = nullptr;
     #endif 

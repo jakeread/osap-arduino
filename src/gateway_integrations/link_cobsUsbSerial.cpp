@@ -11,6 +11,14 @@ OSAP_Gateway_USBSerial::OSAP_Gateway_USBSerial(SerialUSB* usbcdc):
   // set type...
   typeKey = LGATEWAYTYPEKEY_USBSERIAL;
 }
+#elif defined(ARDUINO_TEENSY41) || defined(ARDUINO_TEENSY40)
+OSAP_Gateway_USBSerial::OSAP_Gateway_USBSerial(usb_serial_class* usbcdc):
+  LGateway(OSAP_Runtime::getInstance()), // call the lgateway constructor, 
+  cobsUsbSerialLink(usbcdc)           // call the link constructor 
+{
+  // set type...
+  typeKey = LGATEWAYTYPEKEY_USBSERIAL;
+}
 #else 
 OSAP_Gateway_USBSerial::OSAP_Gateway_USBSerial(Serial_* usbcdc):
   LGateway(OSAP_Runtime::getInstance()), // call the lgateway constructor, 

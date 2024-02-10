@@ -3,11 +3,15 @@
 // on new link layer... to fit into D11s... 
 
 #include "COBSUSBSerial.h"
-#include "utils/cobs.h"
+#include "cobs.h"
 
 
 #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
 COBSUSBSerial::COBSUSBSerial(SerialUSB* _usbcdc){
+  usbcdc = _usbcdc;
+}
+#elif defined(ARDUINO_TEENSY41) || defined(ARDUINO_TEENSY40)
+COBSUSBSerial::COBSUSBSerial(usb_serial_class* _usbcdc){
   usbcdc = _usbcdc;
 }
 #else 
@@ -64,8 +68,11 @@ boolean COBSUSBSerial::clearToRead(void){
   return (rxBufferLen > 0);
 }
 
-void COBSUSBSerial::send(uint8_t* packet, size_t len){
-  // ship it! blind! 
+void COBSUSBSerial::send(uint8_t* packet, size_t len){  
+  // we have a max: we need to stuff into 255, 
+  // and we have a trailing zero and the first key 
+  if(len > 253) len = 253;
+  // ship that, 
   size_t encodedLen = cobsEncode(packet, len, txBuffer);
   // stuff 0 byte, 
   txBuffer[encodedLen] = 0;
