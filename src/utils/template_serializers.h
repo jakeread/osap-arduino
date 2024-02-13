@@ -37,6 +37,14 @@ template<> inline                   // floats
 uint8_t getTypeKey<float>(void){
   return TYPEKEY_FLOAT;
 }
+template<> inline 
+uint8_t getTypeKey<char*>(void){
+  return TYPEKEY_STRING;
+}
+template<> inline
+uint8_t getTypeKey<String>(void){
+  return TYPEKEY_STRING;
+}
 
 
 // --------------------------  Unions (serdes utes) 
@@ -95,29 +103,51 @@ T deserialize(uint8_t* buffer, size_t* rptr){}
 template<>inline 
 int deserialize<int>(uint8_t* buffer, size_t* rptr){
   int val = 0;
-  val |= buffer[(*rptr ++)];
-  val |= buffer[(*rptr ++)] << 8;
-  val |= buffer[(*rptr ++)] << 16;
-  val |= buffer[(*rptr ++)] << 24;
+  val |= buffer[(*rptr) ++];
+  val |= buffer[(*rptr) ++] << 8;
+  val |= buffer[(*rptr) ++] << 16;
+  val |= buffer[(*rptr) ++] << 24;
   return val; 
 }
 
 template<>inline 
 bool deserialize<bool>(uint8_t* buffer, size_t* rptr){
-  return buffer[(*rptr ++)];
+  return buffer[(*rptr) ++];
 }
 
 template<>inline 
 float deserialize<float>(uint8_t* buffer, size_t* rptr){
   chunk_float32 chunk = {
     .bytes = {
-      buffer[(*rptr ++)],
-      buffer[(*rptr ++)],
-      buffer[(*rptr ++)],
-      buffer[(*rptr ++)],
+      buffer[(*rptr) ++],
+      buffer[(*rptr) ++],
+      buffer[(*rptr) ++],
+      buffer[(*rptr) ++],
     }
   };
   return chunk.f;
+}
+
+// fk it, we can expose our serialized 'string' as an arduino String 
+// for convenience / familiarity... nothing in-system uses this, so 
+// flash shouldn't be affected until it's invoked ~ 
+char string_stash[256] = { 'h', 'e', 'l', 'l', 'o' };
+template<>inline 
+String deserialize<String>(uint8_t* buffer, size_t* rptr){
+  // ok, we can check for our bytecode:
+  if(buffer[(*rptr)] != TYPEKEY_STRING){
+    return "str_err";
+  }
+  // otherwise we have this len to unpack:
+  size_t len = buffer[(*rptr) + 1];
+  // copy those into our stash and stuff a null terminator: 
+  memcpy(string_stash, &(buffer[(*rptr) + 2]), len);
+  string_stash[len] = '\0';
+  // don't forget to increment the rptr accordingly
+  *rptr += len + 2;
+  // a new String, on the stack, to return: 
+  return string_stash;
+  // return String(string_stash);
 }
 
 #endif 

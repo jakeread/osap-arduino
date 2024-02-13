@@ -3,7 +3,7 @@
 // on new link layer... to fit into D11s... 
 
 #include "COBSUSBSerial.h"
-#include "cobs.h"
+#include "utils/cobs.h"
 
 
 #if defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_RP2040)
