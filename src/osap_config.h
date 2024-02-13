@@ -28,6 +28,11 @@ no warranty is provided, and users accept all liability.
 
 // -------------------------------- Stack / Build Sizes
 
+// TODO: we have from i.e. COBSUSBSerial.cpp examples of `if defined(ARDUINO_ARCH...)
+// - we should use those to set relative stack sizes for typical RAM avail
+// and should also watch out to perhaps set compiler flags for RP2040 to allocate 
+// these buffers in RAM rather than slow-af SRAM  
+
 #define OSAP_CONFIG_STACK_SIZE 6
 #define OSAP_CONFIG_PACKET_MAX_SIZE 256
 
